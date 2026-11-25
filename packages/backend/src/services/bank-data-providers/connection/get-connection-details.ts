@@ -1,8 +1,11 @@
+import type { BankHistoryStatus } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
+import { getHistoryDailyRequestCap } from '../history-backfill/daily-cap';
+import { toHistoryStatus } from '../history-backfill/state';
 import { bankProviderRegistry } from '../registry';
 import { computeConsentValidity } from './consent-validity';
 
@@ -54,6 +57,10 @@ export interface ConnectionDetailsResponse {
     isExpiringSoon: boolean; // Less than 7 days remaining
   };
   deactivationReason?: string | null;
+  /** Whether this provider can load older history in the background. */
+  supportsHistoryBackfill: boolean;
+  /** The background history load; null while it is off. */
+  history: BankHistoryStatus | null;
 }
 
 export async function getConnectionDetails(params: GetConnectionDetailsParams): Promise<ConnectionDetailsResponse> {
@@ -116,5 +123,15 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
     })),
     consent: consentInfo,
     deactivationReason: metadata?.deactivationReason || null,
+    supportsHistoryBackfill: !!provider.historyBackfill,
+    history:
+      connection.historyBackfill && provider.historyBackfill
+        ? toHistoryStatus({
+            state: connection.historyBackfill,
+            now: new Date(),
+            dailyCap: getHistoryDailyRequestCap(),
+            windowDays: provider.historyBackfill.windowDays,
+          })
+        : null,
   };
 }

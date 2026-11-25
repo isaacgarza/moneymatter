@@ -396,6 +396,12 @@
       "accountNotFound": "Akahu account not found.",
       "rateLimited": "Akahu is rate-limiting requests right now. Please try again shortly."
     },
+    "history": {
+      "notSupported": "This provider cannot load older history in the background.",
+      "startDateTooEarly": "The history start date cannot be before {{min}}.",
+      "startDateInFuture": "The history start date cannot be in the future.",
+      "someAccountsFailed": "{{count}} account(s) could not be updated in the last window; see the account sync status."
+    },
     "simplefin": {
       "invalidCredentialsFormat": "Invalid SimpleFIN credentials format.",
       "invalidSetupToken": "Invalid or already-used SimpleFIN setup token. Generate a new one from the SimpleFIN Bridge and try again.",

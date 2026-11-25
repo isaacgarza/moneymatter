@@ -3,6 +3,7 @@ import { BANK_PROVIDER_TYPE, RecordId } from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
 import Accounts from '@models/accounts.model';
 import Users from '@models/users.model';
+import type { HistoryBackfillState } from '@services/bank-data-providers/history-backfill/state';
 import { encryptCredentials, decryptCredentials } from '@services/bank-data-providers/utils/credential-encryption';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType, HasMany } from 'sequelize-typescript';
 
@@ -18,6 +19,7 @@ interface BankDataProviderConnectionsAttributes {
   isActive: boolean;
   credentials: string; // Encrypted JSON string in DB
   metadata: object;
+  historyBackfill: HistoryBackfillState | null;
   lastSyncAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -96,6 +98,13 @@ export default class BankDataProviderConnections extends Model<BankDataProviderC
     comment: 'Provider-specific metadata (webhooks, client IDs, etc.)',
   })
   metadata!: object;
+
+  @Column({
+    allowNull: true,
+    type: DataType.JSONB,
+    comment: 'Background history load: the start date the user asked for and its cursor. NULL = off',
+  })
+  historyBackfill!: HistoryBackfillState | null;
 
   @Column({
     allowNull: true,

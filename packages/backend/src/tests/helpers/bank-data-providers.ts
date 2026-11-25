@@ -116,12 +116,14 @@ export async function connectSelectedAccounts<R extends boolean | undefined = fa
   connectionId,
   accountExternalIds,
   currencyOverrides,
+  historyStartDate,
   raw,
   waitForSync = true,
 }: {
   connectionId: string;
   accountExternalIds: string[];
   currencyOverrides?: Record<string, string>;
+  historyStartDate?: string;
   raw?: R;
   /** Pass false to assert on the in-progress sync state right after connecting. */
   waitForSync?: boolean;
@@ -144,6 +146,7 @@ export async function connectSelectedAccounts<R extends boolean | undefined = fa
     payload: {
       accountExternalIds,
       currencyOverrides,
+      historyStartDate,
     },
     raw,
   });
@@ -318,12 +321,14 @@ export function updateConnectionDetails<R extends boolean | undefined = false>({
   providerName,
   credentials,
   externalUrl,
+  historyStartDate,
   raw,
 }: {
   connectionId: string;
   providerName?: string;
   credentials?: Record<string, unknown>;
   externalUrl?: string | null;
+  historyStartDate?: string | null;
   raw?: R;
 }) {
   return makeRequest<
@@ -347,6 +352,7 @@ export function updateConnectionDetails<R extends boolean | undefined = false>({
       ...(providerName !== undefined && { providerName }),
       ...(credentials !== undefined && { credentials }),
       ...(externalUrl !== undefined && { externalUrl }),
+      ...(historyStartDate !== undefined && { historyStartDate }),
     },
     raw,
   });
