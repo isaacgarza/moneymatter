@@ -1,4 +1,3 @@
-import { ACCOUNT_CATEGORIES } from './accounts';
 import { RecordId } from './record-id';
 import type { TransactionModel } from './transactions';
 
@@ -59,16 +58,6 @@ export type BudgetPlanCoverageState = 'prepared' | 'left_to_cover' | 'over_commi
 
 export const BUDGET_ASSIGNMENT_SCOPES = ['from_here', 'this_period'] as const;
 export type BudgetAssignmentScope = (typeof BUDGET_ASSIGNMENT_SCOPES)[number];
-
-/** The account categories a plan may attach. */
-export const BUDGET_PLAN_ATTACHABLE_ACCOUNT_CATEGORIES: readonly ACCOUNT_CATEGORIES[] = [
-  ACCOUNT_CATEGORIES.general,
-  ACCOUNT_CATEGORIES.cash,
-  ACCOUNT_CATEGORIES.currentAccount,
-  ACCOUNT_CATEGORIES.saving,
-  ACCOUNT_CATEGORIES.creditCard,
-  ACCOUNT_CATEGORIES.overdraft,
-];
 
 export interface BudgetPlanModel {
   id: RecordId;

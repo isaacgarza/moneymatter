@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, type MinorUnits, type RecordId, asMinorUnits } from '@bt/shared/types';
+import { DEDICATED_FLOW_ACCOUNT_CATEGORIES, type MinorUnits, type RecordId, asMinorUnits } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import { getAccessibleAccountIdsForUser } from '@services/sharing/auth/get-accessible-account-ids.service';
 import { Op } from 'sequelize';
@@ -30,7 +30,7 @@ export const getCreditLimitMinorByAccount = async ({
       ...scopeWhere,
       excludeFromStats: false,
       creditLimit: { [Op.gt]: 0 },
-      accountCategory: { [Op.notIn]: [ACCOUNT_CATEGORIES.loan, ACCOUNT_CATEGORIES.vehicle] },
+      accountCategory: { [Op.notIn]: DEDICATED_FLOW_ACCOUNT_CATEGORIES },
     },
     attributes: ['id', 'refCreditLimit'],
   });
