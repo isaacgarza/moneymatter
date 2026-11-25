@@ -69,9 +69,34 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          # A conflict fails this step and notifies; resolve by hand on a branch of the same name.
-          git merge --no-ff -m "chore: merge upstream $TAG" "$TAG"
+          base=$(git merge-base HEAD "$TAG")
+          git merge --no-ff --no-commit "$TAG" || true
+          # CLAUDE.md is deleted in this fork (AGENTS.md replaces it), so an upstream edit to it
+          # is a modify/delete conflict. Keep it deleted and hand the upstream edit to the PR body.
+          claude_diff=$(git diff "$base" "$TAG" -- CLAUDE.md)
+          if [[ -n "$(git ls-files --unmerged -- CLAUDE.md)" ]]; then
+            git rm -q -f CLAUDE.md
+          fi
+          # Any other conflict fails this step and notifies; resolve by hand on a branch of the same name.
+          if [[ -n "$(git diff --name-only --diff-filter=U)" ]]; then
+            git diff --name-only --diff-filter=U
+            echo "::error::Merge conflicts beyond CLAUDE.md; resolve by hand on $branch"
+            exit 1
+          fi
+          git commit -q -m "chore: merge upstream $TAG"
           git push origin "$branch"
+          {
+            echo "Merges upstream release $TAG into main. Snapshot the MoneyMatter dataset before deploying: migrations run on boot and cannot be downgraded. After merging, tag main as \`$TAG-hl.1\` to build the images."
+            if [[ -n "$claude_diff" ]]; then
+              echo
+              echo "Upstream changed \`CLAUDE.md\`, which this fork deletes in favour of \`AGENTS.md\`. Port what applies to \`AGENTS.md\`:"
+              echo
+              echo '```diff'
+              echo "$claude_diff" | head -c 30000
+              echo
+              echo '```'
+            fi
+          } > "$RUNNER_TEMP/body.md"
           gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
             --title "chore: merge upstream $TAG" \
-            --body "Merges upstream release $TAG into main. Snapshot the MoneyMatter dataset before deploying: migrations run on boot and cannot be downgraded. After merging, tag main as \`$TAG-hl.1\` to build the images."
+            --body-file "$RUNNER_TEMP/body.md"
