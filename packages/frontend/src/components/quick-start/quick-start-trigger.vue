@@ -36,7 +36,7 @@ const strokeDasharray = (progress: number) => {
               'transition-all duration-200 hover:scale-105',
               'focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none',
               // Desktop: right side, vertically centered
-              'top-1/2 right-4 -translate-y-1/2',
+              'top-1/2 right-[max(1rem,var(--safe-right))] -translate-y-1/2',
               // Mobile: bottom right, above bottom navbar
               'max-md:top-auto max-md:bottom-20 max-md:translate-y-0',
             )
