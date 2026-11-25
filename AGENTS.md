@@ -1,7 +1,21 @@
 # Project Rules & Conventions
 
+This is `isaacgarza/moneymatter`, a public fork of `letehaha/moneymatter` (AGPL-3.0) that runs on a homelab. The rules below are upstream's conventions plus the fork workflow in the next section. This file replaces upstream's `CLAUDE.md`; see "Fork workflow".
+
 - **Backend work**: Read `.claude/docs/backend-conventions.md` before writing backend code
 - **Frontend work**: Read `.claude/skills/frontend-rules/SKILL.md` before writing frontend code
+
+## Fork workflow
+
+- **Branches.** `main` is upstream's release line plus our patches. `upstream-main` is a fast-forward mirror of upstream `main`: never commit to it. `dev` is upstream's next-release branch and the repository's GitHub default; do not branch from it or target it.
+- **Every PR targets `main`.** GitHub defaults to `dev`, and a PR against it shows upstream's release commits as the diff. Pass `--base main` to `pr create`, and branch from `main` (`wt switch -c` cuts from `dev`; reset the empty branch to `main`).
+- **Never open anything on `letehaha/moneymatter`.** Our changes stay in this fork.
+- **Releases.** Tag `main` as `v<upstream version>-hl.<N>`, for example `v0.34.2-hl.2`. The tag runs `.github/workflows/homelab-images.yml`, which builds `budget-tracker-be` and `budget-tracker-fe` (amd64) to `ghcr.io/isaacgarza`. The homelab repo pins the upstream version and `hl.N` in its `versions.yml`. A tag is never reused.
+- **Upstream sync.** `.github/workflows/homelab-sync-upstream.yml` runs weekly and opens a `sync/<tag>` PR that merges the newest upstream release into `main`. It never auto-merges. After merging, tag `main` as `<tag>-hl.1`.
+- **Keep the diff against upstream small.** Every changed upstream line is a possible merge conflict in a sync PR. Prefer a small edit to an existing file over a rewrite, and prefer a new file over reshaping an upstream one.
+- **Upstream's workflows are disabled** in this fork except `check-source-code`, plus our two `homelab-*` workflows.
+- **`AGENTS.md` is the only agent guidance file.** Upstream's `CLAUDE.md` is deleted here: while a `CLAUDE.md` exists, Claude Code ignores `AGENTS.md`. The sync workflow drops it again on each merge and lists what upstream changed in it in the PR body; port anything worth keeping into this file by hand. Some files under `.claude/` still say "CLAUDE.md"; read that as this file.
+- **Git.** Commits follow Conventional Commits, and PRs follow `.github/pull_request_template.md`. Upstream's "never commit or push" rule does not apply here; the owner of this fork works through branches and PRs.
 
 ## Testing Patterns
 
@@ -49,11 +63,11 @@ Other instructions:
    - Always: function({ arg1, arg2, arg3 })
 3. When planning the implementation don't limit yourself to 3-4 questions and 1 round.
    Ask as many questions with as many rounds as needed to collect all important information
-4. Use this map of suagents for different tasks:
+4. Use this map of subagents for different tasks:
    - running any unit or e2e tests – use test-runner
-   - running any linter – use linter
-     – planning doing any websearch – use websearch
-     – if asked to do any code review – use code-change-reviewer
+   - running any linter – use linter
+   - planning doing any websearch – use websearch
+   - if asked to do any code review – use code-change-reviewer
 5. **Tool Selection for Code Search:**
 
    **Use ast-grep when:**
@@ -111,16 +125,15 @@ Other instructions:
    - **`en` + `uk`, always together.** Every new or changed key is written to `en` and translated into `uk` in the same task, so `uk` never lags behind and needs no separate pre-release pass. Every other locale is community-translated in Crowdin – never write to those files; the next Crowdin download overwrites them. The supported list is not repeated here: grep `SUPPORTED_LOCALES` (all app locales) and `COMMUNITY_LOCALES` (the Crowdin-translated ones) in `packages/shared/src/i18n/locales.ts`.
    - Do NOT touch i18n files for unrelated work (don't "improve" existing translations, don't reorganize keys, don't bulk-translate English-only strings you encounter) – only add/update keys that the current task requires.
    - If a string's wording is non-obvious (e.g., domain terminology, formal vs. casual tone), ask the user for the copy before delegating to the subagent.
-8. For Chrome extenstion use Brave browser, not Chrome
-9. **Frontend env vars (`VITE_*`) must also be added to CI** – they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in `.github/workflows/image-to-docker-hub.yml`.
-10. **CRITICAL: No Git Commits or Pushes**
-    - **NEVER** run `git commit`, `git push`, or any command that creates commits or pushes to remote.
-    - The user manages all git operations themselves. No exceptions.
+8. For Chrome extension use Brave browser, not Chrome
+9. **Frontend env vars (`VITE_*`) must also be added to CI** – they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in the workflow that builds the image: `.github/workflows/homelab-images.yml` here (upstream's `image-to-docker-hub.yml` is disabled in this fork).
+10. **Git: see "Fork workflow" above.** (Upstream's rule 10, "no commits or pushes", is replaced by it; the number is kept so references to later rules stay valid.)
 11. **CRITICAL: Migrations – Modify Existing Before Creating New**
     - **NEVER** create a new migration file if you can modify an existing one that was created during the current development process and has **not been merged to `dev`** yet.
     - Check the current branch's unmerged migrations first (`git log dev..HEAD` or git status for new files). If the change logically belongs in an existing unmerged migration, update that migration instead of adding a new one.
     - Only create a separate migration when the existing one is already on `dev` or when the changes are genuinely unrelated.
     - `dev`, not `main`, is the line: once a migration is on `dev` it has run against other developers' and previews' databases, so amending it leaves those databases silently diverged from the file.
+    - In this fork, a migration that has shipped in a `-hl.N` image has run on the homelab database: treat it as merged and never amend it, whatever `dev` says.
 12. **VERY IMPORTANT: Stop Early When Stuck**
     - If something doesn't work as expected during implementation, you are allowed **1–2 attempts** to fix it.
     - After that – **STOP**. Do NOT keep trying workarounds, custom scripts, eval hacks, or speculative fixes.
