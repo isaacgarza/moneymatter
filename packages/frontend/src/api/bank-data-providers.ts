@@ -1,5 +1,10 @@
 import { api } from '@/api/_api';
-import { BANK_PROVIDER_TYPE, type ConnectionNeedingReauth, type ConnectionStatusSummary } from '@bt/shared/types';
+import {
+  BANK_PROVIDER_TYPE,
+  type BankHistoryStatus,
+  type ConnectionNeedingReauth,
+  type ConnectionStatusSummary,
+} from '@bt/shared/types';
 
 export type { ConnectionNeedingReauth, ConnectionStatusSummary };
 
@@ -78,6 +83,8 @@ interface BankConnectionDetails {
     isExpiringSoon: boolean;
   };
   deactivationReason?: string | null;
+  supportsHistoryBackfill: boolean;
+  history: BankHistoryStatus | null;
 }
 
 /**
@@ -154,7 +161,13 @@ export const reauthorizeConnection = async (connectionId: string): Promise<{ aut
 
 export const updateConnectionDetails = async (
   connectionId: string,
-  details: { providerName?: string; credentials?: Record<string, unknown>; externalUrl?: string | null },
+  details: {
+    providerName?: string;
+    credentials?: Record<string, unknown>;
+    externalUrl?: string | null;
+    // A day (YYYY-MM-DD) loads bank history back to it in the background; null stops that.
+    historyStartDate?: string | null;
+  },
 ): Promise<{ message: string; connection: BankConnectionDetails }> => {
   const response = await api.patch(`/bank-data-providers/connections/${connectionId}`, details);
   return response;

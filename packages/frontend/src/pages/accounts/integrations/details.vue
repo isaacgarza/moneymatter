@@ -262,6 +262,13 @@
           :total-label="leadTotalLabel"
           @connect-remaining="openFetchAccountsDialog"
         />
+
+        <ConnectionHistoryCard
+          v-if="connectionDetails.supportsHistoryBackfill"
+          class="mt-4"
+          :connection-id="connectionId"
+          :history="connectionDetails.history"
+        />
       </div>
 
       <!-- Update Credentials Dialog -->
@@ -416,11 +423,13 @@ import { useRoute, useRouter } from 'vue-router';
 
 import ConnectAccountsDialog from './components/connect-accounts-dialog.vue';
 import ConnectionAccountsTable from './components/connection-accounts-table.vue';
+import ConnectionHistoryCard from './components/connection-history-card.vue';
 import DisconnectIntegrationDialog from './components/disconnect-integration-dialog.vue';
 import EditConnectionNameDialog from './components/edit-connection-name-dialog.vue';
 import IntegrationDetailsSkeleton from './components/integration-details-skeleton.vue';
 import ReconnectConfirmationDialog from './components/reconnect-confirmation-dialog.vue';
 import { buildProviderCredentials } from './utils/build-provider-credentials';
+import { isHistoryLoading } from './utils/history-status-view';
 
 const route = useRoute();
 const router = useRouter();
@@ -446,7 +455,14 @@ const {
   data: connectionDetails,
   isLoading,
   error,
-} = useBankConnectionDetails({ connectionId: connectionId, queryOptions: { retry: false } });
+} = useBankConnectionDetails({
+  connectionId: connectionId,
+  queryOptions: {
+    retry: false,
+    // The history load runs in the background, so keep its progress fresh while it is in flight.
+    refetchInterval: (query) => (isHistoryLoading({ history: query.state.data?.history }) ? 60_000 : false),
+  },
+});
 
 const isConnectionNotFound = computed(() => isNotFoundError(error.value));
 

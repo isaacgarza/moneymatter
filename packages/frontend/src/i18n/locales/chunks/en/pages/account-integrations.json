@@ -355,6 +355,29 @@
           "notAvailable": "N/A",
           "reconnectButton": "Reconnect now"
         },
+        "history": {
+          "title": "Transaction history",
+          "description": "Load older transactions from your bank in the background. It uses a few of the bank connection's daily requests, so a long history takes a couple of days.",
+          "startLabel": "Load history from",
+          "start": "Start loading",
+          "update": "Update date",
+          "retry": "Retry",
+          "stop": "Stop loading",
+          "saved": "History start date saved.",
+          "stopped": "History loading stopped. Transactions already loaded are kept.",
+          "saveFailed": "Couldn't save the history start date.",
+          "progress": "{done} of {total} periods loaded",
+          "nextRun": "continues {when}",
+          "lastError": "Last error: {message}",
+          "forwardOnlyNote": "Accounts linked forward-only can't load transactions from before the day they were linked.",
+          "state": {
+            "pending": "Waiting to start",
+            "running": "Loading",
+            "cooldown": "Paused",
+            "attention": "Needs attention",
+            "complete": "Complete"
+          }
+        },
         "connectedAccounts": {
           "title": "Connected accounts",
           "empty": "No accounts connected yet.",
