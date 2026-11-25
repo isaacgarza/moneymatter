@@ -86,7 +86,7 @@ jobs:
           git commit -q -m "chore: merge upstream $TAG"
           git push origin "$branch"
           {
-            echo "Merges upstream release $TAG into main. Snapshot the MoneyMatter dataset before deploying: migrations run on boot and cannot be downgraded. After merging, tag main as \`$TAG-hl.1\` to build the images."
+            echo "Merges upstream release $TAG into main. Snapshot the MoneyMatter dataset before deploying: migrations run on boot and cannot be downgraded. Merging tags main as \`$TAG-hl.1\` and builds the images by itself."
             if [[ -n "$claude_diff" ]]; then
               echo
               echo "Upstream changed \`CLAUDE.md\`, which this fork deletes in favour of \`AGENTS.md\`. Port what applies to \`AGENTS.md\`:"

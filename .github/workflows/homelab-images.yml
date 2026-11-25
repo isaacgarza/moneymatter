@@ -1,23 +1,77 @@
 name: Homelab images
 
-# Fork-only workflow. Builds the be and fe images from a `v<upstream>-hl.<N>` tag and
-# pushes them to GHCR. Upstream's own image workflow is Docker Hub/Sentry/Dokploy-specific
-# and stays untouched (disabled in this fork) so upstream merges never conflict with it.
+# Fork-only workflow. Releases the fork: a push to `main` that changes the app is tagged
+# `v<upstream>-hl.<N>` (see .github/scripts/homelab-next-tag.sh), and the be and fe images are
+# built from that tag and pushed to GHCR. A `v*-hl.*` tag pushed by hand builds the same way.
+# Upstream's own image workflow is Docker Hub/Sentry/Dokploy-specific and stays untouched
+# (disabled in this fork) so upstream merges never conflict with it.
+#
+# Tagging and building share this workflow because a tag pushed with GITHUB_TOKEN does not
+# start other workflows.
 on:
   push:
+    branches: [main]
+    # Docs, workflow and agent-guidance changes do not change the images.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
     tags: ['v*-hl.*']
 
 permissions:
   contents: read
   packages: write
 
+# One release at a time, queued rather than cancelled. A newer queued run replaces an older
+# one, which is safe: a run tags the commit it was started for, and that includes the older one.
 concurrency:
-  group: homelab-images-${{ github.ref_name }}
+  group: homelab-images
   cancel-in-progress: false
 
 jobs:
-  build:
+  tag:
+    name: Tag main
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # A merged sync PR brings upstream's release commit but not its tag, and the base of the
+      # new tag is read from the tags merged into HEAD. These stay local; only our tag is pushed.
+      - name: Fetch upstream release tags
+        run: |
+          git remote add upstream https://github.com/letehaha/moneymatter.git
+          git fetch --no-tags upstream 'refs/tags/v*:refs/tags/v*'
+
+      - name: Work out the next tag
+        id: next
+        run: echo "tag=$(.github/scripts/homelab-next-tag.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Push the tag
+        if: steps.next.outputs.tag != ''
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "refs/tags/$TAG"
+
+  build:
+    needs: tag
+    # `tag` is skipped for a pushed tag and outputs nothing when main has nothing new to release.
+    if: >-
+      ${{ !cancelled() && (needs.tag.result == 'success' || needs.tag.result == 'skipped')
+      && (needs.tag.outputs.tag != '' || github.ref_type == 'tag') }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.tag.outputs.tag || github.ref_name }}
     strategy:
       fail-fast: true
       matrix:
@@ -30,6 +84,8 @@ jobs:
             context: ./
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
 
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
@@ -42,7 +98,7 @@ jobs:
       # A published tag is immutable: re-running a failed job must not move it.
       - name: Refuse to overwrite an existing tag
         env:
-          REF: ghcr.io/${{ github.repository_owner }}/budget-tracker-${{ matrix.name }}:${{ github.ref_name }}
+          REF: ghcr.io/${{ github.repository_owner }}/budget-tracker-${{ matrix.name }}:${{ env.TAG }}
         run: |
           if err=$(docker buildx imagetools inspect "$REF" 2>&1 >/dev/null); then
             echo "::notice::$REF already exists, skipping"
@@ -61,6 +117,6 @@ jobs:
           file: ${{ matrix.file }}
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/budget-tracker-${{ matrix.name }}:${{ github.ref_name }}
+          tags: ghcr.io/${{ github.repository_owner }}/budget-tracker-${{ matrix.name }}:${{ env.TAG }}
           build-args: |
             VITE_APP_COMMIT_HASH=${{ github.sha }}
