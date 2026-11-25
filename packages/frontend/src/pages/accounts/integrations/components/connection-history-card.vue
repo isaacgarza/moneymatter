@@ -16,7 +16,9 @@
         <div class="bg-primary h-full rounded-full transition-all" :style="{ width: `${progressPercent}%` }" />
       </div>
       <p class="text-muted-foreground text-xs tabular-nums">
-        {{ $t('pages.integrations.details.history.progress', { done: history.windowsDone, total: history.windowsTotal }) }}
+        {{
+          $t('pages.integrations.details.history.progress', { done: history.windowsDone, total: history.windowsTotal })
+        }}
         <template v-if="nextRunLabel"> · {{ nextRunLabel }}</template>
       </p>
       <p v-if="history.lastError" class="text-destructive-text text-xs">
@@ -30,6 +32,7 @@
         type="date"
         class="w-full @sm/connection:w-48"
         :label="$t('pages.integrations.details.history.startLabel')"
+        :max="today"
         :disabled="isSaving"
       />
 
@@ -72,6 +75,8 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const { formatDistanceToNow } = useDateLocale();
 const queryClient = useQueryClient();
 
+// The backend refuses a date in the future, so the picker stops there.
+const today = new Date().toISOString().slice(0, 10);
 const startDate = ref(props.history?.startDate ?? '');
 watch(
   () => props.history?.startDate,
@@ -94,9 +99,7 @@ const { mutate: save, isPending: isSaving } = useMutation({
     });
   },
   onError: (error) => {
-    addErrorNotification(
-      error instanceof Error ? error.message : t('pages.integrations.details.history.saveFailed'),
-    );
+    addErrorNotification(error instanceof Error ? error.message : t('pages.integrations.details.history.saveFailed'));
   },
 });
 

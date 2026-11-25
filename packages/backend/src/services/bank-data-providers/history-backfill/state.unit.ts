@@ -1,6 +1,6 @@
 import { BANK_HISTORY_STATE } from '@bt/shared/types';
 
-import { parseDay } from './plan-windows';
+import { formatDay, parseDay } from './plan-windows';
 import {
   applyCooldown,
   applyRefund,
@@ -12,6 +12,7 @@ import {
   COOLDOWN_MS,
   type HistoryBackfillState,
   MAX_WINDOW_ATTEMPTS,
+  nextTarget,
   toHistoryStatus,
 } from './state';
 
@@ -39,6 +40,7 @@ describe('applyStartDate', () => {
       cooldownUntil: null,
       attempt: null,
       skipped: [],
+      retry: [],
       lastError: null,
       completedAt: null,
     });
@@ -72,7 +74,7 @@ describe('applyStartDate', () => {
     expect(applyStartDate({ state: done, startDate: '2026-06-01', now: later }).completedAt).toBe(NOW.toISOString());
   });
 
-  it('retries given-up windows when the same date is saved again, resuming from the newest one', () => {
+  it('queues given-up windows for a retry when the same date is saved again, without moving the cursor', () => {
     let state = running();
     for (let attempt = 0; attempt < MAX_WINDOW_ATTEMPTS; attempt++) {
       state = applyWindowFailed({
@@ -88,8 +90,24 @@ describe('applyStartDate', () => {
     const retried = applyStartDate({ state, startDate: '2025-01-01', now: NOW });
 
     expect(retried.skipped).toEqual([]);
-    expect(retried.loadedFrom).toBe('2026-05-29');
+    expect(retried.retry).toEqual([{ from: '2026-04-15', to: '2026-05-29' }]);
+    expect(retried.loadedFrom).toBe('2026-04-15');
     expect(retried.lastError).toBeNull();
+  });
+
+  it('does not complete while a window is still queued for a retry', () => {
+    let state = running({ startDate: '2026-04-15' });
+    for (let attempt = 0; attempt < MAX_WINDOW_ATTEMPTS; attempt++) {
+      state = applyWindowFailed({
+        state,
+        window: window({ from: '2026-04-15', to: '2026-05-29' }),
+        message: 'down',
+        now: NOW,
+      });
+    }
+    expect(state.completedAt).not.toBeNull();
+
+    expect(applyStartDate({ state, startDate: '2026-04-15', now: NOW }).completedAt).toBeNull();
   });
 
   it('forgets given-up windows that fall before a later start date', () => {
@@ -204,6 +222,66 @@ describe('applyWindowFailed', () => {
   });
 });
 
+describe('retry windows', () => {
+  const giveUp = ({ state, from, to }: { state: HistoryBackfillState; from: string; to: string }) => {
+    let next = state;
+    for (let attempt = 0; attempt < MAX_WINDOW_ATTEMPTS; attempt++) {
+      next = applyWindowFailed({ state: next, window: window({ from, to }), message: 'down', now: NOW });
+    }
+    return next;
+  };
+
+  it('loads a retry window without pulling the cursor back up, and clears it from the queue', () => {
+    const skipped = giveUp({ state: running(), from: '2026-04-15', to: '2026-05-29' });
+    const queued = applyStartDate({ state: skipped, startDate: '2025-01-01', now: NOW });
+    const loaded = applyWindowLoaded({
+      state: queued,
+      window: window({ from: '2026-04-15', to: '2026-05-29' }),
+      lastError: null,
+      now: NOW,
+    });
+
+    expect(loaded.loadedFrom).toBe('2026-04-15');
+    expect(loaded.retry).toEqual([]);
+  });
+
+  it('gives up on a retry window again without moving the cursor', () => {
+    const queued = applyStartDate({
+      state: { ...giveUp({ state: running(), from: '2026-04-15', to: '2026-05-29' }), loadedFrom: '2026-02-01' },
+      startDate: '2025-01-01',
+      now: NOW,
+    });
+
+    const again = giveUp({ state: queued, from: '2026-04-15', to: '2026-05-29' });
+
+    expect(again.loadedFrom).toBe('2026-02-01');
+    expect(again.retry).toEqual([]);
+    expect(again.skipped).toEqual([{ from: '2026-04-15', to: '2026-05-29' }]);
+  });
+
+  it('picks the window below the cursor first, then queued windows newest first', () => {
+    const base = { ...running(), loadedFrom: '2026-02-01' };
+    const state = {
+      ...base,
+      retry: [
+        { from: '2026-03-01', to: '2026-04-01' },
+        { from: '2026-04-15', to: '2026-05-29' },
+      ],
+    };
+
+    const below = nextTarget({ state, windowDays: WINDOW_DAYS });
+    expect(below && formatDay({ date: below.to })).toBe('2026-02-01');
+
+    const queued = nextTarget({ state: { ...state, loadedFrom: '2025-01-01' }, windowDays: WINDOW_DAYS });
+    expect(queued && formatDay({ date: queued.to })).toBe('2026-05-29');
+  });
+
+  it('has no target before the first step has set the cursor, or once everything is loaded', () => {
+    expect(nextTarget({ state: started(), windowDays: WINDOW_DAYS })).toBeNull();
+    expect(nextTarget({ state: { ...running(), loadedFrom: '2025-01-01' }, windowDays: WINDOW_DAYS })).toBeNull();
+  });
+});
+
 describe('applyCooldown', () => {
   it('blocks for a day and keeps the cursor', () => {
     const state = applyCooldown({ state: running(), message: 'rate limited', now: NOW });
@@ -300,17 +378,34 @@ describe('toHistoryStatus', () => {
     expect(status({ state: spent }).nextRunAt).toBe(new Date(NOW.getTime() + 21 * 60 * 60 * 1000).toISOString());
   });
 
-  it('needs attention while a window has been given up on, even when the rest is loaded', () => {
-    let state = running({ startDate: '2026-04-20' });
+  const giveUp = ({ state, from, to }: { state: HistoryBackfillState; from: string; to: string }) => {
+    let next = state;
     for (let attempt = 0; attempt < MAX_WINDOW_ATTEMPTS; attempt++) {
-      state = applyWindowFailed({
-        state,
-        window: window({ from: '2026-04-20', to: '2026-05-29' }),
-        message: 'down',
-        now: NOW,
-      });
+      next = applyWindowFailed({ state: next, window: window({ from, to }), message: 'down', now: NOW });
     }
+    return next;
+  };
+
+  it('needs attention once loading has finished with a window given up on', () => {
+    const state = giveUp({ state: running({ startDate: '2026-04-20' }), from: '2026-04-20', to: '2026-05-29' });
 
     expect(status({ state })).toMatchObject({ state: BANK_HISTORY_STATE.attention, lastError: 'down' });
+  });
+
+  it('keeps reporting running while older windows are still loading after one was given up on', () => {
+    const state = giveUp({ state: running(), from: '2026-04-15', to: '2026-05-29' });
+
+    expect(status({ state })).toMatchObject({ state: BANK_HISTORY_STATE.running, windowsDone: 1 });
+  });
+
+  it('counts a window queued for a retry as not yet done', () => {
+    const skipped = giveUp({ state: running({ startDate: '2026-04-15' }), from: '2026-04-15', to: '2026-05-29' });
+    const queued = applyStartDate({ state: skipped, startDate: '2026-04-15', now: NOW });
+
+    expect(status({ state: queued })).toMatchObject({
+      state: BANK_HISTORY_STATE.running,
+      windowsDone: 0,
+      windowsTotal: 1,
+    });
   });
 });

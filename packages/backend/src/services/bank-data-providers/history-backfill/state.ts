@@ -1,14 +1,14 @@
 import { BANK_HISTORY_STATE, type BankHistoryStatus } from '@bt/shared/types';
 
-import { countWindows, formatDay, type HistoryWindow } from './plan-windows';
+import { countWindows, formatDay, type HistoryWindow, nextWindow, parseDay } from './plan-windows';
 import { nextRequestSlotAt, recentRequests } from './request-budget';
 
 export const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 /** A window that keeps failing is given up on after this many tries, one per hourly tick. */
 export const MAX_WINDOW_ATTEMPTS = 5;
 
-/** A window given up on; the dates are kept so a retry knows where to resume. */
-interface SkippedWindow {
+/** A window as stored: both ends are `YYYY-MM-DD`. */
+interface StoredWindow {
   from: string;
   to: string;
 }
@@ -26,19 +26,29 @@ export interface HistoryBackfillState {
   cooldownUntil: string | null;
   /** Failures of the window currently being retried. */
   attempt: { windowFrom: string; count: number } | null;
-  skipped: SkippedWindow[];
+  /** Windows given up on. Saving the same start date again moves them to `retry`. */
+  skipped: StoredWindow[];
+  /** Windows that were given up on and are being tried again, newest first, after the cursor is done. */
+  retry: StoredWindow[];
   lastError: string | null;
   completedAt: string | null;
 }
 
 const isLoaded = ({ state }: { state: HistoryBackfillState }): boolean =>
-  state.loadedFrom !== null && state.loadedFrom <= state.startDate;
+  state.loadedFrom !== null && state.loadedFrom <= state.startDate && state.retry.length === 0;
 
 /** `completedAt` follows the cursor, so every transition ends here. */
 const settle = ({ state, now }: { state: HistoryBackfillState; now: Date }): HistoryBackfillState => ({
   ...state,
   completedAt: isLoaded({ state }) ? (state.completedAt ?? now.toISOString()) : null,
 });
+
+const sameWindow = ({ stored, window }: { stored: StoredWindow; window: HistoryWindow }): boolean =>
+  stored.from === formatDay({ date: window.from }) && stored.to === formatDay({ date: window.to });
+
+/** The cursor only moves down: a retry window sits above it and must not pull it back up. */
+const cursorAfter = ({ state, windowFrom }: { state: HistoryBackfillState; windowFrom: string }): string =>
+  state.loadedFrom !== null && state.loadedFrom < windowFrom ? state.loadedFrom : windowFrom;
 
 /** The user's start date: first set, changed, or saved again to retry windows that were given up on. */
 export const applyStartDate = ({
@@ -59,30 +69,25 @@ export const applyStartDate = ({
       cooldownUntil: null,
       attempt: null,
       skipped: [],
+      retry: [],
       lastError: null,
       completedAt: null,
     };
   }
 
-  const kept = state.skipped.filter((window) => window.to > startDate);
-  // Saving the same date again retries what was given up on, resuming from the newest such window.
-  const retryFrom =
-    startDate === state.startDate
-      ? kept
-          .map((window) => window.to)
-          .toSorted()
-          .at(-1)
-      : undefined;
+  const skipped = state.skipped.filter((window) => window.to > startDate);
+  const retry = state.retry.filter((window) => window.to > startDate);
+  const isRetry = startDate === state.startDate && skipped.length > 0;
 
   return settle({
     now,
     state: {
       ...state,
       startDate,
-      skipped: retryFrom ? [] : kept,
-      loadedFrom: retryFrom ?? state.loadedFrom,
-      attempt: retryFrom ? null : state.attempt,
-      lastError: retryFrom ? null : state.lastError,
+      skipped: isRetry ? [] : skipped,
+      retry: isRetry ? [...retry, ...skipped] : retry,
+      attempt: isRetry ? null : state.attempt,
+      lastError: isRetry ? null : state.lastError,
     },
   });
 };
@@ -98,6 +103,23 @@ export const applyTopDate = ({
   now: Date;
 }): HistoryBackfillState => settle({ now, state: { ...state, topDate, loadedFrom: topDate } });
 
+/** The next window to load: the newest below the cursor, then windows queued for a retry, newest first. */
+export const nextTarget = ({
+  state,
+  windowDays,
+}: {
+  state: HistoryBackfillState;
+  windowDays: number;
+}): HistoryWindow | null => {
+  if (!state.loadedFrom) return null;
+
+  const below = nextWindow({ loadedFrom: state.loadedFrom, startDate: state.startDate, windowDays });
+  if (below) return below;
+
+  const queued = state.retry.toSorted((a, b) => b.to.localeCompare(a.to))[0];
+  return queued ? { from: parseDay({ day: queued.from }), to: parseDay({ day: queued.to }) } : null;
+};
+
 /** Spend is written before the request goes out, so a crash mid-request still counts it. */
 export const applySpend = ({ state, now }: { state: HistoryBackfillState; now: Date }): HistoryBackfillState => ({
   ...state,
@@ -110,7 +132,7 @@ export const applyRefund = ({ state, at }: { state: HistoryBackfillState; at: st
   return index === -1 ? state : { ...state, requestsAt: state.requestsAt.filter((_, position) => position !== index) };
 };
 
-/** The window is persisted (or had nothing for any account), so the cursor moves below it. */
+/** The window is persisted for every account (or had nothing for any), so the cursor moves below it. */
 export const applyWindowLoaded = ({
   state,
   window,
@@ -121,12 +143,17 @@ export const applyWindowLoaded = ({
   window: HistoryWindow;
   lastError: string | null;
   now: Date;
-}): HistoryBackfillState => {
-  const windowFrom = formatDay({ date: window.from });
-  // Never moves the cursor back up: a retry or a late outcome may report a window already below it.
-  const loadedFrom = state.loadedFrom !== null && state.loadedFrom < windowFrom ? state.loadedFrom : windowFrom;
-  return settle({ now, state: { ...state, loadedFrom, attempt: null, lastError } });
-};
+}): HistoryBackfillState =>
+  settle({
+    now,
+    state: {
+      ...state,
+      loadedFrom: cursorAfter({ state, windowFrom: formatDay({ date: window.from }) }),
+      retry: state.retry.filter((stored) => !sameWindow({ stored, window })),
+      attempt: null,
+      lastError,
+    },
+  });
 
 /** 429 or 403 from the bridge: stop for a day, keep the cursor. */
 export const applyCooldown = ({
@@ -166,7 +193,8 @@ export const applyWindowFailed = ({
     now,
     state: {
       ...state,
-      loadedFrom: windowFrom,
+      loadedFrom: cursorAfter({ state, windowFrom }),
+      retry: state.retry.filter((stored) => !sameWindow({ stored, window })),
       attempt: null,
       skipped: [...state.skipped, { from: windowFrom, to: formatDay({ date: window.to }) }],
       lastError: message,
@@ -190,15 +218,16 @@ export const toHistoryStatus = ({
     ? countWindows({ topDate: state.topDate, startDate: state.startDate, windowDays })
     : 0;
   const windowsLeft =
-    state.topDate && state.loadedFrom
+    (state.topDate && state.loadedFrom
       ? countWindows({ topDate: state.loadedFrom, startDate: state.startDate, windowDays })
-      : windowsTotal;
+      : windowsTotal) + state.retry.length;
   const cooling = state.cooldownUntil !== null && new Date(state.cooldownUntil) > now;
 
+  // Gaps are reported once loading has finished; until then the load is still running and the page keeps refreshing.
   let status = BANK_HISTORY_STATE.running;
-  if (state.skipped.length > 0) status = BANK_HISTORY_STATE.attention;
-  else if (state.completedAt) status = BANK_HISTORY_STATE.complete;
-  else if (cooling) status = BANK_HISTORY_STATE.cooldown;
+  if (state.completedAt) {
+    status = state.skipped.length > 0 ? BANK_HISTORY_STATE.attention : BANK_HISTORY_STATE.complete;
+  } else if (cooling) status = BANK_HISTORY_STATE.cooldown;
   else if (!state.topDate) status = BANK_HISTORY_STATE.pending;
 
   const waitingForBudget =
@@ -211,7 +240,7 @@ export const toHistoryStatus = ({
   return {
     startDate: state.startDate,
     state: status,
-    windowsDone: Math.max(0, windowsTotal - windowsLeft),
+    windowsDone: Math.min(windowsTotal, Math.max(0, windowsTotal - windowsLeft)),
     windowsTotal,
     nextRunAt: nextRunAt?.toISOString() ?? null,
     lastError: state.lastError,

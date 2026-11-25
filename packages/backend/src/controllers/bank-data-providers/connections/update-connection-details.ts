@@ -7,7 +7,10 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import { bankProviderRegistry } from '@services/bank-data-providers';
 import { updateConnectionDetails } from '@services/bank-data-providers/connection/update-connection-details';
 import { historyStartDateSchema } from '@services/bank-data-providers/history-backfill/history-start-date-schema';
-import { setHistoryStartDate } from '@services/bank-data-providers/history-backfill/set-history-start';
+import {
+  assertHistoryStartDateAllowed,
+  setHistoryStartDate,
+} from '@services/bank-data-providers/history-backfill/set-history-start';
 import { z } from 'zod';
 
 export default createController(
@@ -45,6 +48,15 @@ export default createController(
       message: t({ key: 'errors.connectionNotFound' }),
     });
 
+    // Checked before anything is written, so a bad date fails the whole request instead of half of it.
+    if (body.historyStartDate) {
+      await assertHistoryStartDateAllowed({
+        connectionId: connection.id,
+        userId: user.id,
+        startDate: body.historyStartDate,
+      });
+    }
+
     if (body.providerName !== undefined || body.externalUrl !== undefined) {
       await updateConnectionDetails({
         connectionId: connection.id,
@@ -55,19 +67,20 @@ export default createController(
       await connection.reload();
     }
 
+    // If credentials are provided, validate and update via the provider
+    if (body.credentials) {
+      const provider = bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE);
+      await provider.refreshCredentials(connection.id, body.credentials);
+      await connection.reload();
+    }
+
+    // Last, so a failed credential check does not leave a history load started.
     if (body.historyStartDate !== undefined) {
       await setHistoryStartDate({
         connectionId: connection.id,
         userId: user.id,
         startDate: body.historyStartDate,
       });
-    }
-
-    // If credentials are provided, validate and update via the provider
-    if (body.credentials) {
-      const provider = bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE);
-      await provider.refreshCredentials(connection.id, body.credentials);
-      await connection.reload();
     }
 
     return {

@@ -8,13 +8,16 @@ import * as helpers from '@tests/helpers';
 import {
   SIMPLEFIN_ACCOUNT_1,
   SIMPLEFIN_ACCOUNT_2,
+  getMockedSimplefinAccountSet,
   getMockedSimplefinTransactionsOnDaysAgo,
 } from '@tests/mocks/simplefin/data';
 import {
+  INVALID_SIMPLEFIN_SETUP_TOKEN,
   SIMPLEFIN_ACCOUNTS_URL,
   VALID_SIMPLEFIN_SETUP_TOKEN,
   createSimplefinAccountsRecorder,
   getSimplefinAccountsErrorMock,
+  getSimplefinAccountsMock,
 } from '@tests/mocks/simplefin/mock-api';
 import { addHours, subDays } from 'date-fns';
 import { HttpResponse, http } from 'msw';
@@ -252,39 +255,65 @@ describe('Bank history backfill', () => {
       expect(requests).toHaveLength(2);
     });
 
-    it('retries a failing window, then gives up on it and flags the connection', async () => {
+    it('retries a failing window, then gives up on it and carries on with the older ones', async () => {
       const { connectionId } = await setUp();
       await setStartDate({ connectionId, daysAgo: 270 });
       global.mswMockServer.use(getSimplefinAccountsErrorMock({ status: 500 }));
 
       for (let run = 1; run <= 4; run++) {
         expect((await runBankHistoryBackfill()).failed).toBe(1);
-        expect((await getHistory({ connectionId }))?.state).toBe(BANK_HISTORY_STATE.running);
+        expect((await getHistory({ connectionId }))?.windowsDone).toBe(0);
       }
       await runBankHistoryBackfill();
 
+      // The newest window is given up on and the older ones are still to load, so it is not yet "attention".
       const history = await getHistory({ connectionId });
-      expect(history?.state).toBe(BANK_HISTORY_STATE.attention);
+      expect(history?.state).toBe(BANK_HISTORY_STATE.running);
       expect(history?.windowsDone).toBe(1);
       expect(history?.lastError).toBeTruthy();
     });
 
-    it('retries the windows given up on when the same date is saved again', async () => {
+    it('flags the connection once loading finishes with a window given up on, and retries it when the date is saved again', async () => {
       const { connectionId, accountId } = await setUp();
-      await setStartDate({ connectionId, daysAgo: 270 });
+      // 224 days back is exactly one window below the first sync's reach, so giving it up finishes the load.
+      await setStartDate({ connectionId, daysAgo: 224 });
       global.mswMockServer.use(getSimplefinAccountsErrorMock({ status: 500 }));
       for (let run = 0; run < 5; run++) await runBankHistoryBackfill();
       expect((await getHistory({ connectionId }))?.state).toBe(BANK_HISTORY_STATE.attention);
 
-      global.mswMockServer.use(
-        createSimplefinAccountsRecorder({ account1Transactions: olderTransactions(), windowed: true }).handler,
-      );
-      await setStartDate({ connectionId, daysAgo: 270 });
+      const recorder = createSimplefinAccountsRecorder({ account1Transactions: olderTransactions(), windowed: true });
+      global.mswMockServer.use(recorder.handler);
+      await setStartDate({ connectionId, daysAgo: 224 });
       expect((await getHistory({ connectionId }))?.state).toBe(BANK_HISTORY_STATE.running);
 
-      for (let run = 0; run < 4; run++) await runBankHistoryBackfill();
+      await runBankHistoryBackfill();
 
-      expect(await Transactions.count({ where: { accountId } })).toBe(3);
+      // Only the window that was given up on is fetched again.
+      expect(recorder.requests).toHaveLength(1);
+      expect(await Transactions.count({ where: { accountId } })).toBe(1);
+      expect((await getHistory({ connectionId }))?.state).toBe(BANK_HISTORY_STATE.complete);
+    });
+
+    it('keeps the cursor still when an account could not store a window', async () => {
+      const connectionId = await connectSimplefin();
+      await importAccounts({ connectionId, externalIds: [SIMPLEFIN_ACCOUNT_1, SIMPLEFIN_ACCOUNT_2] });
+      const accountSet = getMockedSimplefinAccountSet();
+      // The bridge answers without the second account, which the sync reports as a failure for that account.
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({
+          response: { ...accountSet, accounts: accountSet.accounts.filter((a) => a.id === SIMPLEFIN_ACCOUNT_1) },
+        }),
+      );
+      await setStartDate({ connectionId, daysAgo: 270 });
+
+      expect((await runBankHistoryBackfill()).failed).toBe(1);
+
+      expect(await getHistory({ connectionId })).toMatchObject({
+        state: BANK_HISTORY_STATE.running,
+        windowsDone: 0,
+        windowsTotal: 3,
+        lastError: expect.any(String),
+      });
     });
 
     it('makes no request while a sync holds the account, and does not count one', async () => {
@@ -366,6 +395,33 @@ describe('Bank history backfill', () => {
       expect(future.statusCode).toBe(ERROR_CODES.ValidationError);
       expect(tooEarly.statusCode).toBe(ERROR_CODES.ValidationError);
       expect(notADay.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(await getHistory({ connectionId })).toBeNull();
+    });
+
+    it('leaves no history load behind when the same request fails its credential check', async () => {
+      const { connectionId } = await setUp();
+
+      const response = await helpers.bankDataProviders.updateConnectionDetails({
+        connectionId,
+        credentials: { setupToken: INVALID_SIMPLEFIN_SETUP_TOKEN },
+        historyStartDate: daysAgoAsDay({ days: 270 }),
+      });
+
+      expect(response.statusCode).not.toBe(200);
+      expect(await getHistory({ connectionId })).toBeNull();
+    });
+
+    it('leaves no history load behind when connecting the accounts fails', async () => {
+      const connectionId = await connectSimplefin();
+
+      const response = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: ['not-an-account-of-this-bridge'],
+        historyStartDate: daysAgoAsDay({ days: 270 }),
+        waitForSync: false,
+      });
+
+      expect(response.statusCode).not.toBe(200);
       expect(await getHistory({ connectionId })).toBeNull();
     });
 

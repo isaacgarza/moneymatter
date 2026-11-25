@@ -2,7 +2,10 @@ import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { connectSelectedAccounts } from '@root/services/bank-data-providers/connection/connect-selected-accounts';
 import { historyStartDateSchema } from '@services/bank-data-providers/history-backfill/history-start-date-schema';
-import { setHistoryStartDate } from '@services/bank-data-providers/history-backfill/set-history-start';
+import {
+  assertHistoryStartDateAllowed,
+  setHistoryStartDate,
+} from '@services/bank-data-providers/history-backfill/set-history-start';
 import { z } from 'zod';
 
 export default createController(
@@ -19,9 +22,9 @@ export default createController(
     }),
   }),
   async ({ user, params, body }) => {
-    // Before the accounts exist, so an unsupported provider or a bad date fails with nothing created.
+    // Checked before the accounts exist, so an unsupported provider or a bad date fails with nothing created.
     if (body.historyStartDate) {
-      await setHistoryStartDate({
+      await assertHistoryStartDateAllowed({
         connectionId: params.connectionId,
         userId: user.id,
         startDate: body.historyStartDate,
@@ -34,6 +37,15 @@ export default createController(
       accountExternalIds: body.accountExternalIds,
       currencyOverrides: body.currencyOverrides,
     });
+
+    // Written only once the accounts are created, so a failed connect leaves no history load behind.
+    if (body.historyStartDate) {
+      await setHistoryStartDate({
+        connectionId: params.connectionId,
+        userId: user.id,
+        startDate: body.historyStartDate,
+      });
+    }
 
     return {
       data: {

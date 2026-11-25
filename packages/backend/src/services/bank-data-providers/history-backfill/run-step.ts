@@ -12,7 +12,7 @@ import { withAccountSyncLock } from '../connection/sync-transactions-for-account
 import { bankProviderRegistry } from '../registry';
 import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { getHistoryDailyRequestCap } from './daily-cap';
-import { formatDay, type HistoryWindow, nextWindow } from './plan-windows';
+import { formatDay, type HistoryWindow } from './plan-windows';
 import { requestsLeft } from './request-budget';
 import {
   applyCooldown,
@@ -22,6 +22,7 @@ import {
   applyWindowFailed,
   applyWindowLoaded,
   type HistoryBackfillState,
+  nextTarget,
 } from './state';
 import { updateHistoryState } from './state-store';
 
@@ -85,11 +86,7 @@ const stepFor = async ({ connectionId, now }: { connectionId: string; now: Date 
   let window: HistoryWindow | null = null;
   let usable: Accounts[] = [];
   while (state?.loadedFrom && !state.completedAt) {
-    window = nextWindow({
-      loadedFrom: state.loadedFrom,
-      startDate: state.startDate,
-      windowDays: capability.windowDays,
-    });
+    window = nextTarget({ state, windowDays: capability.windowDays });
     if (!window) break;
 
     const target: HistoryWindow = window;
@@ -127,13 +124,24 @@ const stepFor = async ({ connectionId, now }: { connectionId: string; now: Date 
           window: target,
         }),
     });
-    const lastError =
-      failedAccountIds.length > 0
-        ? t({ key: 'bankDataProviders.history.someAccountsFailed', variables: { count: failedAccountIds.length } })
-        : null;
+    if (failedAccountIds.length > 0) {
+      // The rows that did persist stay, and replaying the window is safe, so it counts as a failed try:
+      // the cursor must not move past data an account did not store.
+      const message = t({
+        key: 'bankDataProviders.history.someAccountsFailed',
+        variables: { count: failedAccountIds.length },
+      });
+      await updateHistoryState({
+        connectionId,
+        update: (current) => (current ? applyWindowFailed({ state: current, window: target, message, now }) : current),
+      });
+      return 'failed';
+    }
+
     const after = await updateHistoryState({
       connectionId,
-      update: (current) => (current ? applyWindowLoaded({ state: current, window: target, lastError, now }) : current),
+      update: (current) =>
+        current ? applyWindowLoaded({ state: current, window: target, lastError: null, now }) : current,
     });
     return after?.completedAt ? 'complete' : 'loaded';
   } catch (error) {
