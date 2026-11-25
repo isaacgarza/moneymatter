@@ -21,6 +21,7 @@ import { withTransaction } from '@services/common/with-transaction';
 
 import { SyncStatus, setAccountSyncStatus, setAccountsSyncStatus } from '../sync/sync-status-tracker';
 import { PROVIDER_TO_ACCOUNT_TYPE } from '../types';
+import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { linkAndEmitSyncedTransactions } from '../utils/link-and-emit-synced-transactions';
 import { persistSyncedTransactions } from '../utils/persist-synced-transactions';
@@ -47,7 +48,8 @@ import {
  * 180-day initial backfill, ~9 for a full-year period load, regardless of how
  * many accounts are synced.
  */
-const MAX_WINDOW_MS = 44 * 24 * 60 * 60 * 1000;
+const MAX_WINDOW_DAYS = 44;
+const MAX_WINDOW_MS = MAX_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * How far back the first sync of a freshly-connected account reaches. Kept
@@ -117,6 +119,8 @@ export class SimplefinProvider extends BaseBankDataProvider {
       minSyncInterval: 5 * 60 * 1000, // 5 minutes
     },
   };
+
+  readonly historyBackfill = { windowDays: MAX_WINDOW_DAYS, initialSyncDays: INITIAL_BACKFILL_DAYS };
 
   // ============================================================================
   // Connection Management
@@ -297,23 +301,30 @@ export class SimplefinProvider extends BaseBankDataProvider {
    * connection syncing) then COMPLETED/FAILED individually as it is persisted.
    * A fetch-level failure (auth / rate-limit) fails every account with the same
    * error and rethrows so the caller logs it.
+   *
+   * With `window`, only that range is fetched and each account keeps rows from the window
+   * start or its link day, whichever is later. That load never consumes planned rows, and
+   * it leaves `lastSyncAt` alone since it fetched no recent data.
    */
   async syncConnectionAccounts({
     connectionId,
     userId,
     systemAccountIds,
+    window,
   }: {
     connectionId: string;
     userId: number;
     systemAccountIds: RecordId[];
-  }): Promise<void> {
+    window?: { from: Date; to: Date };
+  }): Promise<{ failedAccountIds: string[] }> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
+    const failedAccountIds: string[] = [];
     const accounts = await Accounts.findAll({
       where: { id: systemAccountIds, bankDataProviderConnectionId: connectionId },
     });
-    if (accounts.length === 0) return;
+    if (accounts.length === 0) return { failedAccountIds };
 
     const accountIds = accounts.map((account) => account.id);
     await setAccountsSyncStatus({ accountIds, status: SyncStatus.SYNCING, userId });
@@ -326,14 +337,21 @@ export class SimplefinProvider extends BaseBankDataProvider {
     // INITIAL_BACKFILL_DAYS backfill). Recently-synced accounts re-fetch a
     // little extra, which dedup drops — the connection is still fetched in
     // one pass per window.
-    const to = new Date();
+    const to = window?.to ?? new Date();
     const plans = await Promise.all(
       accounts.map(async (account) => {
+        if (window) {
+          return {
+            account,
+            matchPlanned: false,
+            createFromDate: clampSyncStartToLink({ account, from: window.from }),
+          };
+        }
         const { from, matchPlanned } = await resolveSyncStart({ account, to, backfillDays: INITIAL_BACKFILL_DAYS });
         return { account, matchPlanned, createFromDate: from };
       }),
     );
-    const from = new Date(Math.min(...plans.map((plan) => plan.createFromDate.getTime())));
+    const from = window?.from ?? new Date(Math.min(...plans.map((plan) => plan.createFromDate.getTime())));
 
     let byExternalId: Map<string, AccountTransactionsBucket>;
     try {
@@ -413,11 +431,14 @@ export class SimplefinProvider extends BaseBankDataProvider {
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         logger.error({ message: `[SimpleFIN] Sync error for account ${account.id}:`, error: error as Error });
+        failedAccountIds.push(account.id);
         await setAccountSyncStatus({ accountId: account.id, status: SyncStatus.FAILED, error: message, userId });
       }
     }
 
-    await this.updateLastSync(connectionId);
+    if (!window) await this.updateLastSync(connectionId);
+
+    return { failedAccountIds };
   }
 
   /**

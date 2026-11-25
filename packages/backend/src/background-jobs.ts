@@ -6,6 +6,7 @@ import { aiUsageMonthEndCron } from './crons/ai-usage-month-end';
 import { attachmentsOrphanSweepCron } from './crons/attachments-orphan-sweep';
 import { balanceRevalueSweepCron } from './crons/balance-revalue-sweep';
 import { bankAccountsSyncCron } from './crons/bank-accounts-sync';
+import { bankHistoryBackfillCron } from './crons/bank-history-backfill';
 import { budgetPlansPurgeCron } from './crons/budget-plans-purge';
 import { coingeckoRatesSyncCron } from './crons/coingecko-rates-sync';
 import { cryptoPricesSyncCron } from './crons/crypto-prices-sync';
@@ -49,6 +50,7 @@ const prodOnlyCrons = [
   balanceRevalueSweepCron,
   attachmentsOrphanSweepCron,
   bankAccountsSyncCron,
+  bankHistoryBackfillCron,
   trackerSmartScanCron,
   trackerRulesSyncCron,
   aiUsageMonthEndCron,

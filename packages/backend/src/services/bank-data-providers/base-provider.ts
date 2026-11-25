@@ -499,5 +499,22 @@ export abstract class BaseBankDataProvider {
    * respecting tight request budgets. Providers without it fall back to the
    * per-account `syncTransactions`. Marks each account's sync status internally.
    */
-  syncConnectionAccounts?(args: { connectionId: string; userId: number; systemAccountIds: string[] }): Promise<void>;
+  syncConnectionAccounts?(args: {
+    connectionId: string;
+    userId: number;
+    systemAccountIds: string[];
+    /** Load exactly this range, for the history load, instead of resuming from each account's newest row. */
+    window?: { from: Date; to: Date };
+  }): Promise<{ failedAccountIds: string[] }>;
+
+  /**
+   * Set only by providers that can load older history in the background. Needs
+   * `syncConnectionAccounts` with its `window`, since the load runs one window per request.
+   */
+  readonly historyBackfill?: {
+    /** The widest range one request may cover. */
+    windowDays: number;
+    /** How far back the first sync of an account reaches; the background load continues below it. */
+    initialSyncDays: number;
+  };
 }

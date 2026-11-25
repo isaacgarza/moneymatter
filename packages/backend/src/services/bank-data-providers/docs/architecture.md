@@ -482,6 +482,32 @@ Auth error (ForbiddenError, or provider-specific isAuthError()) → handleAuthEr
 
 ---
 
+## Flow 8: Background History Load
+
+A provider that sets `historyBackfill` (`windowDays`, `initialSyncDays`) and implements `syncConnectionAccounts` with its `window` option can load history older than its first sync (SimpleFIN today). The first sync reaches `initialSyncDays` back; this flow continues below it.
+
+```
+PATCH /bank-data-providers/connections/:id { historyStartDate }   (or the connect-selected-accounts body)
+       ↓
+setHistoryStartDate() → BankDataProviderConnections.historyBackfill (JSONB, own column)
+       ↓
+bankHistoryBackfillCron, hourly at :20 → runHistoryStep() per connection with a start date set and not complete
+  • skips while cooling down, or while the daily request cap is used (BANK_HISTORY_DAILY_REQUESTS, default 8)
+  • first step finds the top of the range: the oldest bank row, never newer than the first sync's reach
+  • picks the newest window below the cursor; windows no account can use (all linked after them) cost nothing
+  • records the request, then calls syncConnectionAccounts({ window }) under the account sync locks
+  • moves the cursor below the window once it is persisted
+```
+
+- One request covers every account on the connection, so the cost is the number of windows, not accounts times windows.
+- A forward-only account keeps rows from the later of the window start and its link day (`clampSyncStartToLink`), so a start date is a ceiling on depth, not a promise.
+- A window load never consumes planned rows and does not touch `lastSyncAt`.
+- 429 or 403 from the bridge starts a 24 hour cooldown. A window that fails 5 ticks in a row is skipped and the connection shows `attention`; saving the same date again retries it. A held sync lock makes no request and the spend is taken back.
+- The state lives in its own column rather than `metadata` because the auth-failure tracker rewrites the whole `metadata` object, which would undo a concurrent cursor update. `updateHistoryState()` is the only writer and takes the row lock.
+- Clearing the date stops the load. Rows already loaded are kept.
+
+---
+
 ## Provider Comparison
 
 | Feature           | Monobank        | Enable Banking      | LunchFlow            |
