@@ -25,7 +25,7 @@ permissions:
 # One release at a time, queued rather than cancelled. A newer queued run replaces an older
 # one, which is safe: a run tags the commit it was started for, and that includes the older one.
 concurrency:
-  group: homelab-images
+  group: homelab-images-${{ github.ref_type == 'tag' && github.ref_name || 'main' }}
   cancel-in-progress: false
 
 jobs:
@@ -44,20 +44,30 @@ jobs:
 
       # A merged sync PR brings upstream's release commit but not its tag, and the base of the
       # new tag is read from the tags merged into HEAD. These stay local; only our tag is pushed.
+      # Forced, so a tag upstream moved cannot stop every release.
       - name: Fetch upstream release tags
         run: |
           git remote add upstream https://github.com/letehaha/moneymatter.git
-          git fetch --no-tags upstream 'refs/tags/v*:refs/tags/v*'
+          git fetch --no-tags upstream '+refs/tags/v*:refs/tags/v*'
 
-      - name: Work out the next tag
+      # Assigned on its own line: a failure inside an echo's argument would not fail the step,
+      # and a push with no release would end green.
+      - name: Work out the tag
         id: next
-        run: echo "tag=$(.github/scripts/homelab-next-tag.sh)" >> "$GITHUB_OUTPUT"
+        run: |
+          tag="$(.github/scripts/homelab-next-tag.sh)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      # When HEAD already has its tag (a re-run), the script names it and nothing is pushed, so
+      # the build below still runs and its never-overwrite check makes the rebuild safe.
       - name: Push the tag
-        if: steps.next.outputs.tag != ''
         env:
           TAG: ${{ steps.next.outputs.tag }}
         run: |
+          if git rev-parse -q --verify "refs/tags/${TAG}" > /dev/null; then
+            echo "${TAG} already exists, not pushing it again"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "Release $TAG"
@@ -65,7 +75,8 @@ jobs:
 
   build:
     needs: tag
-    # `tag` is skipped for a pushed tag and outputs nothing when main has nothing new to release.
+    # `tag` is skipped for a pushed tag; otherwise it names the tag to build and fails the run
+    # when it cannot, which keeps a push with no release from ending green.
     if: >-
       ${{ !cancelled() && (needs.tag.result == 'success' || needs.tag.result == 'skipped')
       && (needs.tag.outputs.tag != '' || github.ref_type == 'tag') }}
