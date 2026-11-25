@@ -1,12 +1,12 @@
 <template>
-  <div class="bg-background flex h-dvh max-md:flex-col">
+  <div class="bg-background flex h-dvh pr-(--safe-right) pl-(--safe-left) max-md:flex-col">
     <template v-if="!isMobileView">
       <SidebarRail v-if="isCollapsed" />
       <Sidebar v-else />
     </template>
 
     <ScrollArea ref="scrollAreaRef" class="flex-1" scrollbar-class="z-40" :scroll-area-id="SCROLL_AREA_IDS.dashboard">
-      <ui-header class="bg-card dark:bg-background sticky top-0 z-30" />
+      <ui-header class="bg-card dark:bg-background sticky top-0 z-30 pt-(--safe-top)" />
 
       <template v-if="isAppInitialized">
         <div class="max-md:pb-4">
