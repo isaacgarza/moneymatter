@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES } from '../accounts';
+import type { NetWorthLiabilityKind } from '../accounts';
 import type { RecordId } from '../record-id';
 
 // Net Worth Drivers Analytics
@@ -119,15 +119,6 @@ export type NetWorthHistoryGranularity = (typeof NET_WORTH_HISTORY_GRANULARITIES
 
 /** Max buckets a net-worth-history range may span before the API rejects it with 422. */
 export const MAX_NET_WORTH_HISTORY_BUCKETS = 500;
-
-// Account categories the report treats as debt products. A deliberate closed subset of
-// ACCOUNT_CATEGORIES so the liability breakdown keys are a typed, exhaustive set.
-export const NET_WORTH_LIABILITY_KINDS = [
-  ACCOUNT_CATEGORIES.creditCard,
-  ACCOUNT_CATEGORIES.loan,
-  ACCOUNT_CATEGORIES.overdraft,
-] as const;
-export type NetWorthLiabilityKind = (typeof NET_WORTH_LIABILITY_KINDS)[number];
 
 // Asset classes the report splits net-worth assets into. Report-specific rather than
 // ACCOUNT_CATEGORIES values because vehicles and ventures are their own entities, and

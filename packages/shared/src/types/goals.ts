@@ -1,4 +1,3 @@
-import { ACCOUNT_CATEGORIES } from './accounts';
 import type { EntityLogoFields, EntityLogoWritePayload } from './entity-logo';
 import type { RecordId } from './record-id';
 
@@ -13,16 +12,6 @@ export const GOAL_NAME_MAX_LENGTH = 100;
 
 export const GOAL_REACHED_HOLD_DAYS_DEFAULT = 30;
 export const GOAL_REACHED_HOLD_DAYS_MAX = 365;
-
-/** Owned accounts of these categories may back a goal; debt and non-cash categories never do. */
-export const GOAL_ELIGIBLE_ACCOUNT_CATEGORIES: readonly ACCOUNT_CATEGORIES[] = [
-  ACCOUNT_CATEGORIES.general,
-  ACCOUNT_CATEGORIES.cash,
-  ACCOUNT_CATEGORIES.currentAccount,
-  ACCOUNT_CATEGORIES.saving,
-  ACCOUNT_CATEGORIES.investment,
-  ACCOUNT_CATEGORIES.crypto,
-];
 
 /**
  * How one account backs a goal: exactly one of `sharePercent` and `fixedAmount` is set. Fixed

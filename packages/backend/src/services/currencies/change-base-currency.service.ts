@@ -1,11 +1,11 @@
 import {
-  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   API_ERROR_CODES,
   type BaseCurrencyBlocker,
   type BaseCurrencyChangeStep,
   FIRE_AMOUNT_KEYS,
   type FireSettings,
+  isDedicatedFlowAccountCategory,
   type RecalculateResult,
   RESOURCE_TYPES,
 } from '@bt/shared/types';
@@ -529,9 +529,7 @@ async function recalculateAccounts(params: {
     // provider-owned openings (bank), loan anchors, and vehicles keep the
     // today-rate stamp their own flows use.
     const isBoundaryStamped =
-      account.type === ACCOUNT_TYPES.system &&
-      account.accountCategory !== ACCOUNT_CATEGORIES.loan &&
-      account.accountCategory !== ACCOUNT_CATEGORIES.vehicle;
+      account.type === ACCOUNT_TYPES.system && !isDedicatedFlowAccountCategory(account.accountCategory);
     const initialBalanceDate = isBoundaryStamped ? (boundaryByAccountId.get(account.id) ?? today) : today;
 
     const newRefInitialBalance = await localCalculateRefAmount({

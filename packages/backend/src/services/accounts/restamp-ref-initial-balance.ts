@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, isDedicatedFlowAccountCategory } from '@bt/shared/types';
 import type { Money } from '@common/types/money';
 import { ExchangeRateUnavailableError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -83,8 +83,7 @@ async function restampRefInitialBalanceImpl({
   if (!account) return 'skipped';
   if (
     (account.type !== ACCOUNT_TYPES.system && !allowProviderAccount) ||
-    account.accountCategory === ACCOUNT_CATEGORIES.loan ||
-    account.accountCategory === ACCOUNT_CATEGORIES.vehicle
+    isDedicatedFlowAccountCategory(account.accountCategory)
   ) {
     return 'skipped';
   }

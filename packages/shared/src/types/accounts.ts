@@ -65,27 +65,172 @@ export enum ACCOUNT_CATEGORIES {
   vehicle = 'vehicle',
 }
 
-/**
- * Account categories that own a required 1:1 sidecar row (LoanDetails,
- * Vehicles) and a dedicated creation flow (`/loans`, `/vehicles`). They must
- * never be created through the generic `POST /accounts` path — that would
- * produce a sidecar-less account with none of the managed-balance machinery,
- * so the create service rejects them and the create-account UI hides them.
- * Each is created only via its own endpoint, which writes the account and its
- * sidecar in one transaction.
- *
- * Their balance history belongs to the same dedicated flow (loan projection,
- * depreciation curve) rather than to `initialBalance + Σtransactions`, so the
- * balance-revalue paths skip them too.
- */
-export const DEDICATED_FLOW_ACCOUNT_CATEGORIES = [ACCOUNT_CATEGORIES.loan, ACCOUNT_CATEGORIES.vehicle] as const;
+export type AccountColorId = 'checking' | 'saving' | 'credit' | 'cash' | 'investment' | 'crypto' | 'vehicle';
 
-type DedicatedFlowAccountCategory = (typeof DEDICATED_FLOW_ACCOUNT_CATEGORIES)[number];
+/** Icon ids; the frontend maps each to a component. */
+export type AccountIconId =
+  | 'landmark'
+  | 'wallet'
+  | 'gift'
+  | 'shield'
+  | 'piggy-bank'
+  | 'credit-card'
+  | 'banknote'
+  | 'trending-up'
+  | 'bitcoin'
+  | 'car'
+  | 'hand-coins';
+
+interface AccountCategoryDefinition {
+  /** i18n key of the category's display name. */
+  labelKey: string;
+  icon: AccountIconId;
+  color: AccountColorId;
+  /**
+   * Owns a required 1:1 sidecar row (LoanDetails, Vehicles) and a dedicated
+   * creation flow (`/loans`, `/vehicles`). Such an account must never be created
+   * through the generic `POST /accounts` path — that would produce a sidecar-less
+   * account with none of the managed-balance machinery, so the create service
+   * rejects it and the create-account UI hides it. Its balance history belongs to
+   * the same flow (loan projection, depreciation curve) rather than to
+   * `initialBalance + Σtransactions`, so the balance-revalue paths skip it too.
+   */
+  dedicatedFlow: boolean;
+  /** Owned accounts of this category may back a goal; debt and non-cash categories never do. */
+  goalEligible: boolean;
+  /** A budget plan may attach accounts of this category. */
+  budgetAttachable: boolean;
+  /** The Net Worth report treats the category as a debt product. */
+  netWorthLiability: boolean;
+}
+
+const FLAG_DEFAULTS = {
+  dedicatedFlow: false,
+  goalEligible: false,
+  budgetAttachable: false,
+  netWorthLiability: false,
+} as const;
+
+type FlagOverrides = Partial<Pick<AccountCategoryDefinition, keyof typeof FLAG_DEFAULTS>>;
+
+// Generic so each flag keeps its literal `true`/`false` type; the derived category lists are typed from it.
+const definition = <const T extends Pick<AccountCategoryDefinition, 'labelKey' | 'icon' | 'color'> & FlagOverrides>(
+  entry: T,
+): Readonly<Omit<typeof FLAG_DEFAULTS, keyof T> & T> => ({ ...FLAG_DEFAULTS, ...entry });
+
+/**
+ * The one place that describes each account category. Behaviour lists, labels, icons and colours
+ * elsewhere are derived from it; add or change a category here, not at its call sites.
+ */
+export const ACCOUNT_CATEGORY_REGISTRY = {
+  [ACCOUNT_CATEGORIES.general]: definition({
+    labelKey: 'common.accountCategories.general',
+    icon: 'wallet',
+    color: 'checking',
+    goalEligible: true,
+    budgetAttachable: true,
+  }),
+  [ACCOUNT_CATEGORIES.cash]: definition({
+    labelKey: 'common.accountCategories.cash',
+    icon: 'banknote',
+    color: 'cash',
+    goalEligible: true,
+    budgetAttachable: true,
+  }),
+  [ACCOUNT_CATEGORIES.currentAccount]: definition({
+    labelKey: 'common.accountCategories.currentAccount',
+    icon: 'landmark',
+    color: 'checking',
+    goalEligible: true,
+    budgetAttachable: true,
+  }),
+  [ACCOUNT_CATEGORIES.creditCard]: definition({
+    labelKey: 'common.accountCategories.creditCard',
+    icon: 'credit-card',
+    color: 'credit',
+    budgetAttachable: true,
+    netWorthLiability: true,
+  }),
+  [ACCOUNT_CATEGORIES.saving]: definition({
+    labelKey: 'common.accountCategories.saving',
+    icon: 'piggy-bank',
+    color: 'saving',
+    goalEligible: true,
+    budgetAttachable: true,
+  }),
+  [ACCOUNT_CATEGORIES.bonus]: definition({
+    labelKey: 'common.accountCategories.bonus',
+    icon: 'gift',
+    color: 'checking',
+  }),
+  [ACCOUNT_CATEGORIES.insurance]: definition({
+    labelKey: 'common.accountCategories.insurance',
+    icon: 'shield',
+    color: 'checking',
+  }),
+  [ACCOUNT_CATEGORIES.investment]: definition({
+    labelKey: 'common.accountCategories.investment',
+    icon: 'trending-up',
+    color: 'investment',
+    goalEligible: true,
+  }),
+  [ACCOUNT_CATEGORIES.loan]: definition({
+    labelKey: 'common.accountCategories.loan',
+    icon: 'hand-coins',
+    color: 'checking',
+    dedicatedFlow: true,
+    netWorthLiability: true,
+  }),
+  [ACCOUNT_CATEGORIES.overdraft]: definition({
+    labelKey: 'common.accountCategories.overdraft',
+    icon: 'credit-card',
+    color: 'credit',
+    budgetAttachable: true,
+    netWorthLiability: true,
+  }),
+  [ACCOUNT_CATEGORIES.crypto]: definition({
+    labelKey: 'common.accountCategories.crypto',
+    icon: 'bitcoin',
+    color: 'crypto',
+    goalEligible: true,
+  }),
+  [ACCOUNT_CATEGORIES.vehicle]: definition({
+    labelKey: 'common.accountCategories.vehicle',
+    icon: 'car',
+    color: 'vehicle',
+    dedicatedFlow: true,
+  }),
+} as const satisfies Record<ACCOUNT_CATEGORIES, AccountCategoryDefinition>;
+
+type AccountCategoryRegistry = typeof ACCOUNT_CATEGORY_REGISTRY;
+
+type CategoriesWithFlag<Flag extends keyof AccountCategoryDefinition> = {
+  [K in keyof AccountCategoryRegistry]: AccountCategoryRegistry[K][Flag] extends true ? K : never;
+}[keyof AccountCategoryRegistry];
+
+const categoriesWithFlag = <Flag extends keyof AccountCategoryDefinition>(flag: Flag) =>
+  Object.values(ACCOUNT_CATEGORIES).filter(
+    (category) => ACCOUNT_CATEGORY_REGISTRY[category][flag] === true,
+  ) as CategoriesWithFlag<Flag>[];
+
+export const DEDICATED_FLOW_ACCOUNT_CATEGORIES = categoriesWithFlag('dedicatedFlow');
+
+type DedicatedFlowAccountCategory = CategoriesWithFlag<'dedicatedFlow'>;
 
 export const isDedicatedFlowAccountCategory = (
   category: ACCOUNT_CATEGORIES,
 ): category is DedicatedFlowAccountCategory =>
-  DEDICATED_FLOW_ACCOUNT_CATEGORIES.includes(category as DedicatedFlowAccountCategory);
+  // An unknown category (a newer server value) is not dedicated-flow.
+  ACCOUNT_CATEGORY_REGISTRY[category]?.dedicatedFlow ?? false;
+
+export const GOAL_ELIGIBLE_ACCOUNT_CATEGORIES: readonly ACCOUNT_CATEGORIES[] = categoriesWithFlag('goalEligible');
+
+/** The account categories a budget plan may attach. */
+export const BUDGET_PLAN_ATTACHABLE_ACCOUNT_CATEGORIES: readonly ACCOUNT_CATEGORIES[] =
+  categoriesWithFlag('budgetAttachable');
+
+export const NET_WORTH_LIABILITY_KINDS = categoriesWithFlag('netWorthLiability');
+export type NetWorthLiabilityKind = CategoriesWithFlag<'netWorthLiability'>;
 
 /** Where linking puts the balance residual the post-link sync leaves unexplained. */
 export const LINK_RESIDUAL_TARGETS = ['opening-balance', 'adjustment'] as const;
