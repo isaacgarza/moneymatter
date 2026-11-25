@@ -1,0 +1,77 @@
+name: Homelab sync upstream
+
+# Fork-only workflow. Keeps `upstream-main` a fast-forward mirror of upstream `main`, and
+# when a newer release tag exists opens a PR that merges it into this fork's `main`.
+# Never merges the PR: the fork's delta is reviewed against each release by a human.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: homelab-sync-upstream
+  cancel-in-progress: false
+
+env:
+  UPSTREAM: https://github.com/letehaha/moneymatter.git
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream "$UPSTREAM"
+          git fetch --no-tags upstream main
+          git fetch --tags upstream
+
+      # upstream-main only ever fast-forwards: a non-fast-forward push is refused, which is
+      # the signal that someone committed to the mirror.
+      - name: Fast-forward upstream-main
+        run: git push origin refs/remotes/upstream/main:refs/heads/upstream-main
+
+      - name: Find the newest release not yet merged
+        id: release
+        run: |
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname --merged upstream/main \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          if [[ -z "$latest" ]]; then
+            echo "::error::No upstream release tag found"
+            exit 1
+          fi
+          if git merge-base --is-ancestor "$latest" HEAD; then
+            echo "Already contains $latest"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=$latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open the merge PR
+        if: steps.release.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          branch="sync/$TAG"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "$branch already exists; PR is already open or was closed on purpose"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          # A conflict fails this step and notifies; resolve by hand on a branch of the same name.
+          git merge --no-ff -m "chore: merge upstream $TAG" "$TAG"
+          git push origin "$branch"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+            --title "chore: merge upstream $TAG" \
+            --body "Merges upstream release $TAG into main. Snapshot the MoneyMatter dataset before deploying: migrations run on boot and cannot be downgraded. After merging, tag main as \`$TAG-hl.1\` to build the images."
