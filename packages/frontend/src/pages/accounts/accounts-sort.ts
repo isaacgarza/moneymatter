@@ -1,6 +1,6 @@
 import type { AccountGroups } from '@/common/types/models';
-import { computeAccountDisplayBalances } from '@/common/utils/account-balance';
 import {
+  accountBaseBalance,
   collectGroupAccounts,
   sumAccountsBaseBalance,
 } from '@/components/sidebar/accounts-view/helpers/account-totals';
@@ -20,25 +20,6 @@ export const defaultSortDirection = ({ sortKey }: { sortKey: AccountsSortKey }):
 export type AccountsListItem =
   | { kind: 'group'; id: string; group: AccountGroups }
   | { kind: 'account'; id: string; account: AccountModel };
-
-/**
- * Base-currency value of one account, run through the shared credit-limit adjustment so a
- * balance sort ranks accounts by the same figure their rows display.
- */
-export const accountBaseValue = ({
-  account,
-  includeCreditLimit,
-}: {
-  account: { currentBalance: number; refCurrentBalance: number; creditLimit: number; refCreditLimit: number };
-  includeCreditLimit: boolean;
-}): number =>
-  computeAccountDisplayBalances({
-    currentBalance: account.currentBalance,
-    refCurrentBalance: account.refCurrentBalance,
-    creditLimit: account.creditLimit,
-    refCreditLimit: account.refCreditLimit,
-    includeCreditLimit,
-  }).displayRefBalance;
 
 /**
  * Base-currency value of a group: the roll-up of its own accounts plus every descendant
@@ -131,7 +112,7 @@ export function sortMixed({
 
   const annotateAccount = (account: AccountModel): AnnotatedItem => ({
     name: account.name,
-    value: accountBaseValue({ account, includeCreditLimit }),
+    value: accountBaseBalance({ account, includeCreditLimit }),
     item: { kind: 'account', id: account.id, account },
   });
 

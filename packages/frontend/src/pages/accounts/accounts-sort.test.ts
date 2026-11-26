@@ -1,16 +1,8 @@
 import type { AccountGroups } from '@/common/types/models';
-import { computeAccountDisplayBalances } from '@/common/utils/account-balance';
 import type { AccountModel } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
-import {
-  type AccountsListItem,
-  accountBaseValue,
-  defaultSortDirection,
-  groupBaseValue,
-  sortItems,
-  sortMixed,
-} from './accounts-sort';
+import { type AccountsListItem, defaultSortDirection, groupBaseValue, sortItems, sortMixed } from './accounts-sort';
 
 const makeAccount = ({
   id,
@@ -54,37 +46,6 @@ const makeGroup = ({
 /** Collapse a tagged list into the plain names in order, for concise assertions. */
 const names = (items: AccountsListItem[]): string[] =>
   items.map((item) => (item.kind === 'group' ? item.group.name : item.account.name));
-
-describe('accountBaseValue', () => {
-  it('returns the base-currency balance unchanged for a plain account', () => {
-    const account = makeAccount({ id: 'a', name: 'Plain', currentBalance: 1200, refCurrentBalance: 1200 });
-    expect(accountBaseValue({ account, includeCreditLimit: false })).toBe(1200);
-  });
-
-  it('nets the credit limit off the base balance when includeCreditLimit is on', () => {
-    const account = makeAccount({
-      id: 'c',
-      name: 'Card',
-      currentBalance: 1000,
-      refCurrentBalance: 1000,
-      creditLimit: 400,
-    });
-
-    // Off: the raw base balance shows.
-    expect(accountBaseValue({ account, includeCreditLimit: false })).toBe(1000);
-
-    // On: same figure the shared display util yields (balance net of the limit).
-    const expected = computeAccountDisplayBalances({
-      currentBalance: 1000,
-      refCurrentBalance: 1000,
-      creditLimit: 400,
-      refCreditLimit: 400,
-      includeCreditLimit: true,
-    }).displayRefBalance;
-    expect(expected).toBe(600);
-    expect(accountBaseValue({ account, includeCreditLimit: true })).toBe(expected);
-  });
-});
 
 describe('groupBaseValue', () => {
   it('rolls up direct accounts plus nested child-group accounts', () => {
