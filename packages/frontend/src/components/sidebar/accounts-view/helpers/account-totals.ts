@@ -25,11 +25,11 @@ export interface GroupBaseTotal {
  * Base-currency balance of a single account, run through the shared credit-limit
  * adjustment so a group total lines up with the balances shown on its rows.
  */
-const accountBaseBalance = ({
+export const accountBaseBalance = ({
   account,
   includeCreditLimit,
 }: {
-  account: BalanceAccount;
+  account: Omit<BalanceAccount, 'currencyCode'>;
   includeCreditLimit: boolean;
 }): number =>
   computeAccountDisplayBalances({
@@ -39,6 +39,15 @@ const accountBaseBalance = ({
     refCreditLimit: account.refCreditLimit,
     includeCreditLimit,
   }).displayRefBalance;
+
+/** True when the account is converted from another currency into the base currency. */
+export const isConvertedAccount = ({
+  account,
+  baseCurrencyCode,
+}: {
+  account: Pick<BalanceAccount, 'currencyCode'>;
+  baseCurrencyCode: string | undefined;
+}): boolean => Boolean(baseCurrencyCode) && account.currencyCode !== baseCurrencyCode;
 
 /**
  * Sum a set of accounts into a single base-currency total, flagging whether any
@@ -58,7 +67,7 @@ export const sumAccountsBaseBalance = ({
 
   for (const account of accounts) {
     total += accountBaseBalance({ account, includeCreditLimit });
-    if (baseCurrencyCode && account.currencyCode !== baseCurrencyCode) isApprox = true;
+    if (isConvertedAccount({ account, baseCurrencyCode })) isApprox = true;
   }
 
   return { total, isApprox };

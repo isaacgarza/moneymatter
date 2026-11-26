@@ -1,8 +1,15 @@
 import type { AccountGroups } from '@/common/types/models';
+import { computeAccountDisplayBalances } from '@/common/utils/account-balance';
 import { AccountModel } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
-import { collectGroupAccounts, flattenAccounts, sumAccountsBaseBalance } from './account-totals';
+import {
+  accountBaseBalance,
+  collectGroupAccounts,
+  flattenAccounts,
+  isConvertedAccount,
+  sumAccountsBaseBalance,
+} from './account-totals';
 
 // Readable string ids keep the flatten-order assertions legible; the account's
 // branded RecordId is loosened here since these fixtures never round-trip through the API.
@@ -161,5 +168,44 @@ describe('flattenAccounts', () => {
 
     expect(Object.keys(result)).toEqual(['shared']);
     expect(result.shared!.refCurrentBalance).toBe(20);
+  });
+});
+
+describe('accountBaseBalance', () => {
+  it('returns the base-currency balance unchanged for a plain account', () => {
+    const account = makeAccount({ currentBalance: 1200, refCurrentBalance: 1200 });
+    expect(accountBaseBalance({ account, includeCreditLimit: false })).toBe(1200);
+  });
+
+  it('nets the credit limit off the base balance when includeCreditLimit is on', () => {
+    const account = makeAccount({
+      currentBalance: 1000,
+      refCurrentBalance: 1000,
+      creditLimit: 400,
+      refCreditLimit: 400,
+    });
+
+    expect(accountBaseBalance({ account, includeCreditLimit: false })).toBe(1000);
+
+    const expected = computeAccountDisplayBalances({
+      currentBalance: 1000,
+      refCurrentBalance: 1000,
+      creditLimit: 400,
+      refCreditLimit: 400,
+      includeCreditLimit: true,
+    }).displayRefBalance;
+    expect(expected).toBe(600);
+    expect(accountBaseBalance({ account, includeCreditLimit: true })).toBe(expected);
+  });
+});
+
+describe('isConvertedAccount', () => {
+  it('is true only for an account outside the base currency', () => {
+    expect(isConvertedAccount({ account: { currencyCode: 'EUR' }, baseCurrencyCode: 'USD' })).toBe(true);
+    expect(isConvertedAccount({ account: { currencyCode: 'USD' }, baseCurrencyCode: 'USD' })).toBe(false);
+  });
+
+  it('is false while the base currency is unknown', () => {
+    expect(isConvertedAccount({ account: { currencyCode: 'EUR' }, baseCurrencyCode: undefined })).toBe(false);
   });
 });

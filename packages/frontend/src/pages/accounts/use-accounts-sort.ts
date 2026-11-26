@@ -1,7 +1,7 @@
 import type { BankConnection } from '@/api/bank-data-providers';
 import type { VehicleModel } from '@/api/vehicles';
 import type { AccountGroups } from '@/common/types/models';
-import { sumAccountsBaseBalance } from '@/components/sidebar/accounts-view/helpers/account-totals';
+import { accountBaseBalance, sumAccountsBaseBalance } from '@/components/sidebar/accounts-view/helpers/account-totals';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useCurrenciesStore } from '@/stores';
 import type { AccountModel } from '@bt/shared/types';
@@ -12,7 +12,6 @@ import {
   type AccountsListItem,
   type AccountsSortDirection,
   type AccountsSortKey,
-  accountBaseValue,
   defaultSortDirection,
   sortItems,
   sortMixed,
@@ -69,7 +68,7 @@ export function useAccountsSort() {
       sortKey: sortKey.value,
       direction: sortDirection.value,
       getName: (account) => account.name,
-      getValue: (account) => accountBaseValue({ account, includeCreditLimit: includeCreditLimit() }),
+      getValue: (account) => accountBaseBalance({ account, includeCreditLimit: includeCreditLimit() }),
     });
 
   const sortVehicles = (vehicles: VehicleModel[]): VehicleModel[] =>
@@ -79,7 +78,9 @@ export function useAccountsSort() {
       direction: sortDirection.value,
       getName: (vehicle) => vehicle.account?.name ?? `${vehicle.make} ${vehicle.model}`,
       getValue: (vehicle) =>
-        vehicle.account ? accountBaseValue({ account: vehicle.account, includeCreditLimit: includeCreditLimit() }) : 0,
+        vehicle.account
+          ? accountBaseBalance({ account: vehicle.account, includeCreditLimit: includeCreditLimit() })
+          : 0,
     });
 
   const sortManual = (groups: AccountGroups[], accounts: AccountModel[]): AccountsListItem[] =>
