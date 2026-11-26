@@ -37,7 +37,6 @@ import { SIDEBAR_NAV_CHILDREN, type SidebarNavChild } from './nav-items';
 import RailIconTrigger from './rail-icon-trigger.vue';
 import { useSidebarNavRoutes } from './use-nav-routes';
 import { useSidebarCollapsed } from './use-sidebar-collapsed';
-import UserMenu from './user-menu.vue';
 
 // `nav-item-active` marks the item the sliding pill sits behind.
 const railItemActive = 'nav-item-active hover:bg-transparent dark:hover:bg-hover';
@@ -326,8 +325,6 @@ const sectionItems = computed<RailSectionItem[]>(() => {
             <PanelLeftIcon class="size-4" />
           </ui-button>
         </DesktopOnlyTooltip>
-
-        <UserMenu compact />
       </div>
     </div>
   </Card>

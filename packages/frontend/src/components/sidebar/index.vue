@@ -13,7 +13,6 @@ import { HeartIcon, PanelLeftIcon } from '@lucide/vue';
 import AccountsView from './accounts-view/index.vue';
 import HideAmountsButton from './hide-amounts-button.vue';
 import NavigationLinks from './navigation-links.vue';
-import UserMenu from './user-menu.vue';
 import { useSidebarCollapsed } from './use-sidebar-collapsed';
 
 defineProps<{ mobileView?: boolean }>();
@@ -61,38 +60,36 @@ const { isSupportButtonVisible, openSupport } = useSupportButton();
 
       <div v-if="!mobileView" class="bg-border/50 mx-1 h-px" />
 
-      <UserMenu :elevated="mobileView">
-        <template #trailing>
-          <HideAmountsButton />
-          <DesktopOnlyTooltip v-if="!mobileView" :content="$t('sidebar.collapse')">
-            <UiButton variant="ghost" size="icon-sm" :aria-label="$t('sidebar.collapse')" @click="isCollapsed = true">
-              <PanelLeftIcon class="size-4" />
-            </UiButton>
-          </DesktopOnlyTooltip>
-          <template v-else>
-            <FeedbackDialog>
-              <UiButton
-                variant="ghost"
-                size="icon-sm"
-                :class="{ 'feedback-pulse': isFeedbackPulsing }"
-                :aria-label="$t('header.feedback')"
-                @click="onFeedbackClick"
-              >
-                <FeedbackIcon class="text-primary-text size-4" />
-              </UiButton>
-            </FeedbackDialog>
+      <div class="flex items-center justify-end gap-1">
+        <HideAmountsButton />
+        <DesktopOnlyTooltip v-if="!mobileView" :content="$t('sidebar.collapse')">
+          <UiButton variant="ghost" size="icon-sm" :aria-label="$t('sidebar.collapse')" @click="isCollapsed = true">
+            <PanelLeftIcon class="size-4" />
+          </UiButton>
+        </DesktopOnlyTooltip>
+        <template v-else>
+          <FeedbackDialog>
             <UiButton
-              v-if="isSupportButtonVisible"
               variant="ghost"
               size="icon-sm"
-              :aria-label="$t('header.support')"
-              @click="openSupport"
+              :class="{ 'feedback-pulse': isFeedbackPulsing }"
+              :aria-label="$t('header.feedback')"
+              @click="onFeedbackClick"
             >
-              <HeartIcon class="text-heart size-4 fill-current" />
+              <FeedbackIcon class="text-primary-text size-4" />
             </UiButton>
-          </template>
+          </FeedbackDialog>
+          <UiButton
+            v-if="isSupportButtonVisible"
+            variant="ghost"
+            size="icon-sm"
+            :aria-label="$t('header.support')"
+            @click="openSupport"
+          >
+            <HeartIcon class="text-heart size-4 fill-current" />
+          </UiButton>
         </template>
-      </UserMenu>
+      </div>
     </CardContent>
   </component>
 </template>
