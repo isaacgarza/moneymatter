@@ -131,7 +131,7 @@
 
           <AccountsSection
             v-if="vehiclesWithAccount.length"
-            :title="$t('accounts.sections.vehicles')"
+            :title="$t('accounts.sections.assets')"
             :count="vehiclesWithAccount.length"
           >
             <template v-if="baseCurrencyCode" #action>
@@ -233,7 +233,7 @@ import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { useProjectedBalance } from '@/composable/use-projected-balance';
 import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-integration-dialog.vue';
 import { useAccountsStore } from '@/stores';
-import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, AccountModel, getAccountSection } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { CarIcon, ChevronDownIcon, EllipsisVerticalIcon, LandmarkIcon, LinkIcon, PlusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
@@ -327,15 +327,14 @@ const folderGroupNames = computed(() => mapFolderGroupNames({ groups: accountGro
 
 const vehicleAccountIds = computed(() => new Set((vehicles.value ?? []).map((v) => v.accountId)));
 
-// Manual, ungrouped, owned money accounts: everything not already under a group,
-// not a vehicle or loan (those have their own sections/pages), and not shared in.
+// Manual, ungrouped, owned money accounts: everything not already under a group, only the
+// banking section (assets and loans have their own sections/pages), and not shared in.
 const ungroupedAccounts = computed(() =>
   (activeAccounts.value ?? []).filter(
     (account) =>
       !accountsInGroups.value[account.id] &&
-      account.accountCategory !== ACCOUNT_CATEGORIES.vehicle &&
+      getAccountSection(account.accountCategory) === 'banking' &&
       !vehicleAccountIds.value.has(account.id) &&
-      account.accountCategory !== ACCOUNT_CATEGORIES.loan &&
       account.share?.isOwner !== false,
   ),
 );
@@ -353,9 +352,7 @@ const archivedAccounts = computed(() =>
 const moneyAccounts = computed(() =>
   [...Object.values(accountsInGroups.value), ...ungroupedAccounts.value].filter(
     (account) =>
-      account.accountCategory !== ACCOUNT_CATEGORIES.vehicle &&
-      account.accountCategory !== ACCOUNT_CATEGORIES.loan &&
-      account.status !== ACCOUNT_STATUSES.archived,
+      getAccountSection(account.accountCategory) === 'banking' && account.status !== ACCOUNT_STATUSES.archived,
   ),
 );
 

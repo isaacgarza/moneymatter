@@ -7,7 +7,7 @@ import { useIdleEnabled } from '@/composable/use-idle-enabled';
 import { useSidebarSections } from '@/composable/use-sidebar-sections';
 import { partitionLoans } from '@/pages/loans/utils/partition-loans';
 import { useAccountsStore } from '@/stores';
-import { ACCOUNT_CATEGORIES, AccountModel } from '@bt/shared/types';
+import { type AccountModel, type AccountSectionId, getAccountSection } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 
@@ -28,13 +28,13 @@ export const useSidebarSectionTotals = () => {
 
   const accountsInGroups = computed(() => flattenAccounts({ groups: accountGroups.value }));
 
-  // Vehicle and loan accounts get their own "Cars" and "Loans" sections, so keep
-  // them out of the Bank Accounts list.
-  const isVehicleAccount = (account: AccountModel) => account.accountCategory === ACCOUNT_CATEGORIES.vehicle;
-  const isLoanAccount = (account: AccountModel) => account.accountCategory === ACCOUNT_CATEGORIES.loan;
-  const vehicleAccounts = computed(() => activeAccounts.value.filter(isVehicleAccount));
+  // The registry says which section each category's accounts belong to; Assets and Loans have
+  // their own sections, so only banking accounts go in the Banking list.
+  const isInSection = (account: AccountModel, section: AccountSectionId) =>
+    getAccountSection(account.accountCategory) === section;
+  const assetAccounts = computed(() => activeAccounts.value.filter((account) => isInSection(account, 'assets')));
   const accountsWithoutGroups = computed(() =>
-    activeAccounts.value.filter((i) => !accountsInGroups.value[i.id] && !isVehicleAccount(i) && !isLoanAccount(i)),
+    activeAccounts.value.filter((account) => !accountsInGroups.value[account.id] && isInSection(account, 'banking')),
   );
 
   const { baseCurrencyCode, sumBaseBalance } = useBaseBalanceTotals();
@@ -67,9 +67,9 @@ export const useSidebarSectionTotals = () => {
   const { data: ventureDeals } = useVentureDeals({ enabled: idleEnabled });
   const venturesCount = computed(() => (ventureDeals.value?.data ?? []).length);
 
-  // Cars total = vehicle accounts in base currency.
-  const carsTotal = computed(() => sumBaseBalance({ accounts: vehicleAccounts.value }));
-  const carsCount = computed(() => vehicleAccounts.value.length);
+  // Assets total = the assets section's accounts in base currency.
+  const assetsTotal = computed(() => sumBaseBalance({ accounts: assetAccounts.value }));
+  const assetsCount = computed(() => assetAccounts.value.length);
 
   const { data: loans } = useLoans();
   const activeLoans = computed(() => partitionLoans({ loans: loans.value ?? [] }).active);
@@ -81,24 +81,26 @@ export const useSidebarSectionTotals = () => {
 
   const showPortfolios = computed(() => sidebarSections.value.portfolios);
   const venturesVisible = computed(() => sidebarSections.value.ventures && venturesCount.value > 0);
-  const carsVisible = computed(() => sidebarSections.value.vehicles && carsCount.value > 0);
+  // Investing holds portfolios and ventures, so it shows while either does.
+  const investingVisible = computed(() => showPortfolios.value || venturesVisible.value);
+  const assetsVisible = computed(() => sidebarSections.value.vehicles && assetsCount.value > 0);
   const loansVisible = computed(() => sidebarSections.value.loans && loansCount.value > 0);
 
   return {
     accountGroups,
     isLoading,
     accountsWithoutGroups,
-    vehicleAccounts,
+    assetAccounts,
     baseCurrencyCode,
     bankAccountsTotal,
     portfoliosTotal,
     isPortfoliosTotalLoading,
-    venturesCount,
-    carsTotal,
+    assetsTotal,
     loansTotal,
     showPortfolios,
     venturesVisible,
-    carsVisible,
+    investingVisible,
+    assetsVisible,
     loansVisible,
   };
 };

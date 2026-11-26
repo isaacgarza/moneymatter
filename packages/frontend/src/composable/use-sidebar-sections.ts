@@ -21,7 +21,7 @@ interface ToggleableSidebarSection {
 const SIDEBAR_SECTION_META: Record<SidebarSectionKey, { labelKey: string; icon: Component }> = {
   portfolios: { labelKey: 'sidebar.accountsView.portfolios', icon: TrendingUpIcon },
   ventures: { labelKey: 'sidebar.accountsView.ventures', icon: RocketIcon },
-  vehicles: { labelKey: 'sidebar.accountsView.cars', icon: CarIcon },
+  vehicles: { labelKey: 'sidebar.accountsView.assets', icon: CarIcon },
   loans: { labelKey: 'sidebar.accountsView.loans', icon: HandCoinsIcon },
 };
 

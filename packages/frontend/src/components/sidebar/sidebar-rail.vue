@@ -33,7 +33,7 @@ import { useSidebarSectionTotals } from './accounts-view/helpers/use-sidebar-sec
 import LoansList from './accounts-view/loans-list.vue';
 import PortfoliosList from './accounts-view/portfolios-list.vue';
 import VenturesList from './accounts-view/ventures-list.vue';
-import { SIDEBAR_NAV_CHILDREN, type SidebarNavChild, useAccountsNavChildren } from './nav-items';
+import { SIDEBAR_NAV_CHILDREN, type SidebarNavChild } from './nav-items';
 import RailIconTrigger from './rail-icon-trigger.vue';
 import { useSidebarNavRoutes } from './use-nav-routes';
 import { useSidebarCollapsed } from './use-sidebar-collapsed';
@@ -46,23 +46,22 @@ const { t } = useI18n();
 const route = useRoute();
 const { isCollapsed } = useSidebarCollapsed();
 const { isAccountsRoute, isTransactionsRoute, isPlannedRoute, isChildActive } = useSidebarNavRoutes();
-const accountsNavChildren = useAccountsNavChildren();
 
 const {
   accountGroups,
   isLoading,
   accountsWithoutGroups,
-  vehicleAccounts,
+  assetAccounts,
   baseCurrencyCode,
   bankAccountsTotal,
   portfoliosTotal,
   isPortfoliosTotalLoading,
-  venturesCount,
-  carsTotal,
+  assetsTotal,
   loansTotal,
   showPortfolios,
   venturesVisible,
-  carsVisible,
+  investingVisible,
+  assetsVisible,
   loansVisible,
 } = useSidebarSectionTotals();
 
@@ -108,7 +107,6 @@ const navItems = computed<RailNavItem[]>(() => [
     icon: LayersIcon,
     label: t('navigation.accounts'),
     active: isAccountsRoute.value,
-    children: accountsNavChildren.value.length > 1 ? accountsNavChildren.value : undefined,
   },
   {
     routeName: ROUTES_NAMES.transactions,
@@ -135,46 +133,37 @@ interface RailSectionItem {
   visible: boolean;
   loading: boolean;
   total?: GroupBaseTotal;
-  count?: number;
 }
 
+// One entry per account section, in the registry's order.
 const sectionItems = computed<RailSectionItem[]>(() => {
   const sections: RailSectionItem[] = [
     {
-      key: 'bank',
+      key: 'banking',
       routeName: ROUTES_NAMES.accounts,
       icon: LayersIcon,
-      label: t('sidebar.accountsView.bankAccounts'),
+      label: t('sidebar.accountsView.banking'),
       visible: true,
       loading: isLoading.value,
       total: bankAccountsTotal.value,
     },
     {
-      key: 'portfolios',
+      key: 'investing',
       routeName: ROUTES_NAMES.investments,
       icon: TrendingUpIcon,
-      label: t('sidebar.accountsView.portfolios'),
-      visible: showPortfolios.value,
+      label: t('sidebar.accountsView.investing'),
+      visible: investingVisible.value,
       loading: isLoading.value || isPortfoliosTotalLoading.value,
-      total: portfoliosTotal.value,
+      total: showPortfolios.value ? portfoliosTotal.value : undefined,
     },
     {
-      key: 'ventures',
-      routeName: ROUTES_NAMES.venture,
-      icon: RocketIcon,
-      label: t('sidebar.accountsView.ventures'),
-      visible: venturesVisible.value,
-      loading: false,
-      count: venturesCount.value,
-    },
-    {
-      key: 'cars',
+      key: 'assets',
       routeName: ROUTES_NAMES.accounts,
       icon: CarIcon,
-      label: t('sidebar.accountsView.cars'),
-      visible: carsVisible.value,
+      label: t('sidebar.accountsView.assets'),
+      visible: assetsVisible.value,
       loading: isLoading.value,
-      total: carsTotal.value,
+      total: assetsTotal.value,
     },
     {
       key: 'loans',
@@ -299,23 +288,31 @@ const sectionItems = computed<RailSectionItem[]>(() => {
                   :loading="section.loading"
                   emphasis
                 />
-                <span v-else-if="section.count !== undefined" class="text-muted-foreground text-sm tabular-nums">
-                  {{ section.count }}
-                </span>
               </router-link>
 
               <div class="bg-border/50 h-px" />
 
-              <template v-if="section.key === 'bank'">
+              <template v-if="section.key === 'banking'">
                 <AccountsSkeleton v-if="isLoading" />
                 <template v-else>
                   <AccountGroupsList :groups="accountGroups" />
                   <AccountsList :accounts="accountsWithoutGroups" />
                 </template>
               </template>
-              <PortfoliosList v-else-if="section.key === 'portfolios'" />
-              <VenturesList v-else-if="section.key === 'ventures'" />
-              <AccountsList v-else-if="section.key === 'cars'" :accounts="vehicleAccounts" />
+              <template v-else-if="section.key === 'investing'">
+                <PortfoliosList v-if="showPortfolios" />
+                <template v-if="venturesVisible">
+                  <router-link
+                    :to="{ name: ROUTES_NAMES.venture }"
+                    class="text-muted-foreground hover:text-foreground mt-1 flex items-center gap-2 px-3 py-1 text-xs font-medium"
+                  >
+                    <RocketIcon class="size-3.5 shrink-0" />
+                    {{ $t('sidebar.accountsView.ventures') }}
+                  </router-link>
+                  <VenturesList />
+                </template>
+              </template>
+              <AccountsList v-else-if="section.key === 'assets'" :accounts="assetAccounts" />
               <LoansList v-else-if="section.key === 'loans'" />
             </div>
           </template>

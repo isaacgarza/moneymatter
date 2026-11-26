@@ -169,14 +169,6 @@ const ZodSidebarSectionsSchema = z.object({
   loans: z.boolean().default(true),
 });
 
-// Optional links under the sidebar's Accounts nav group; each is visible when unset.
-// No `.default()`: the PATCH deep merge would write defaults over stored values.
-const ZodSidebarNavSchema = z.object({
-  loans: z.boolean().optional(),
-  investments: z.boolean().optional(),
-  venture: z.boolean().optional(),
-});
-
 const ZodColumnWidthSchema = z.object({ id: z.string(), widthPx: z.number().int().positive().max(5000) });
 
 // Column ids are plain strings (not an enum) on purpose: the column set is a
@@ -368,7 +360,6 @@ export const ZodSettingsSchema = z.object({
   dashboard: ZodDashboardSettingsSchema.optional(),
   includeCreditLimitInStats: z.boolean().optional(),
   sidebarSections: ZodSidebarSectionsSchema.optional(),
-  sidebarNav: ZodSidebarNavSchema.optional(),
   ui: ZodUiSettingsSchema.optional(),
   import: ZodImportSettingsSchema.optional(),
   accounts: ZodAccountsSettingsSchema.optional(),
@@ -464,7 +455,6 @@ export const ZodSettingsPatchSchema = z.object({
       loans: z.boolean().optional(),
     })
     .optional(),
-  sidebarNav: ZodSidebarNavSchema.optional(),
   ui: z
     .object({
       transactionsTable: z
