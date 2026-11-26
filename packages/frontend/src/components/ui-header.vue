@@ -171,6 +171,8 @@
             </Button>
           </DesktopOnlyTooltip>
         </RouterLink>
+
+        <UserMenu />
       </div>
     </div>
   </div>
@@ -191,6 +193,7 @@ import NotificationsPopover from '@/components/notifications-popover/index.vue';
 import Sidebar from '@/components/sidebar/index.vue';
 import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
+import UserMenu from '@/components/user-menu.vue';
 import {
   createTransactionPrefill,
   isCreateTransactionDialogOpen,
