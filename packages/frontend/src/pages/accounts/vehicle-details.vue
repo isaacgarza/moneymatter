@@ -226,6 +226,8 @@
         </DetailsCard>
       </section>
 
+      <SecuredLoansCard v-if="vehicle.account" :asset-account-id="vehicle.account.id" />
+
       <OverrideHistoryCard
         v-if="vehicle.account"
         :account-id="vehicle.account.id"
@@ -262,6 +264,7 @@ import {
   DEPRECIATION_PRESET_TRANSLATION_KEYS,
   VEHICLE_CLASS_TRANSLATION_KEYS,
 } from '@/common/const/vehicle-classes-verbose';
+import SecuredLoansCard from '@/components/account-links/secured-loans-card.vue';
 import AccountLogo from '@/components/common/account-logo.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';

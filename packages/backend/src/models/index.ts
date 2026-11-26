@@ -2,6 +2,7 @@ import { isPerfDebugEnabled, registerPerfQueryHooks } from '@common/lib/perf/per
 import { types as pgTypes } from 'pg';
 import { Sequelize } from 'sequelize-typescript';
 
+import AccountLinksModel from './account-links.model';
 import AccountGroupingModel from './accounts-groups/account-grouping.model';
 import AccountGroupsModel from './accounts-groups/account-groups.model';
 import AccountsModel from './accounts.model';
@@ -163,6 +164,7 @@ const models = [
   VentureEventLinksModel,
   VehiclesModel,
   LoanDetailsModel,
+  AccountLinksModel,
   TransactionAutomationsModel,
   TransactionAttachmentsModel,
   ImportBatchesModel,

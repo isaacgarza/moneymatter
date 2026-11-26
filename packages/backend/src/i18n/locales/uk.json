@@ -298,6 +298,13 @@
   "landingFaq": {
     "unavailable": "Помічник недоступний прямо зараз. Спробуйте ще раз пізніше або напишіть на support@moneymatter.app."
   },
+  "accountLinks": {
+    "selfLink": "Рахунок не можна пов'язати сам із собою.",
+    "accountNotFound": "Один із рахунків не знайдено.",
+    "relationNotAllowed": "Ці два рахунки не можна пов'язати таким чином.",
+    "alreadyLinked": "Ці рахунки вже пов'язані.",
+    "linkNotFound": "Зв'язок не знайдено."
+  },
   "loans": {
     "loanNotFound": "Кредит не знайдено.",
     "createAccountFailed": "Не вдалося створити рахунок кредиту",
