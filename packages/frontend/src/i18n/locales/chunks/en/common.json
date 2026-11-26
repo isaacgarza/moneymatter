@@ -83,6 +83,19 @@
       "createVehicle": "Add vehicle",
       "editVehicle": "Edit vehicle"
     },
+    "accountLinks": {
+      "securedBy": "Secured by",
+      "securedByEmpty": "Not secured by an asset.",
+      "linkAsset": "Link an asset",
+      "chooseAsset": "Choose an asset",
+      "removeLink": "Remove link",
+      "securedLoans": "Secured loans",
+      "securedLoansEmpty": "No loans are secured by this asset.",
+      "equity": "Equity",
+      "equityHint": "Value of the asset minus the balance of the loans it secures.",
+      "linkFailed": "Could not link the accounts.",
+      "unlinkFailed": "Could not remove the link."
+    },
     "accountCategories": {
       "general": "General",
       "cash": "Cash",

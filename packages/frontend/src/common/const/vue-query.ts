@@ -255,6 +255,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // No transactionChange prefix: creating or editing a transaction never changes a template.
   transactionTemplatesList: ['transaction-templates-list'] as const,
 
+  // account links (secured_by): no transactionChange prefix, a transaction never changes a link
+  accountLinks: ['account-links'] as const,
+
   // loans
   loansList: [transactionChange, 'loans-list'] as const,
   loanDetail: [transactionChange, 'loan-detail'] as const,

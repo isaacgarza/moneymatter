@@ -294,6 +294,13 @@
   "landingFaq": {
     "unavailable": "The assistant is unavailable right now. Please try again later or email support@moneymatter.app."
   },
+  "accountLinks": {
+    "selfLink": "An account cannot be linked to itself.",
+    "accountNotFound": "One of the accounts was not found.",
+    "relationNotAllowed": "These two accounts cannot be linked this way.",
+    "alreadyLinked": "These accounts are already linked.",
+    "linkNotFound": "Link not found."
+  },
   "loans": {
     "loanNotFound": "Loan not found.",
     "createAccountFailed": "Failed to create loan account",

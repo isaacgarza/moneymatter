@@ -54,6 +54,7 @@
               </CardContent>
             </Card>
             <div class="flex flex-col gap-4">
+              <SecuredByCard :loan-account-id="loan.id" />
               <RecentPayments :loan="loan" />
               <EventsTimeline :events="loan.loanDetails.events" :currency-code="loan.currencyCode" />
             </div>
@@ -94,6 +95,7 @@
             </CardContent>
           </Card>
 
+          <SecuredByCard :loan-account-id="loan.id" />
           <RecentPayments :loan="loan" />
           <EventsTimeline :events="loan.loanDetails.events" :currency-code="loan.currencyCode" />
         </div>
@@ -103,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import SecuredByCard from '@/components/account-links/secured-by-card.vue';
 import HintIcon from '@/components/common/hint-icon.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';

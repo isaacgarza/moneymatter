@@ -7,6 +7,7 @@ export * from './users';
 export * from './user-settings';
 export * from './currencies';
 export * from './accounts';
+export * from './account-links';
 export * from './bank-data-providers';
 export * from './categories';
 export * from './tags';
