@@ -14,7 +14,7 @@ import { useSlidingIndicator } from '@/composable/use-sliding-indicator';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-import { SIDEBAR_NAV_CHILDREN, type SidebarNavChild, useAccountsNavChildren } from './nav-items';
+import { SIDEBAR_NAV_CHILDREN, type SidebarNavChild } from './nav-items';
 import { useSidebarNavCollapse } from './use-nav-collapse';
 import { useSidebarNavRoutes } from './use-nav-routes';
 
@@ -33,9 +33,8 @@ const navItemState = ({ active, expanded = false }: { active: boolean; expanded?
 const navIconBase = 'size-4 shrink-0';
 const navIconActive = 'text-primary-text';
 
-const { isAccountsOpen, isTransactionsOpen, isPlannedOpen } = useSidebarNavCollapse();
+const { isTransactionsOpen, isPlannedOpen } = useSidebarNavCollapse();
 const { isAccountsRoute, isTransactionsRoute, isPlannedRoute, isChildActive } = useSidebarNavRoutes();
-const accountsNavChildren = useAccountsNavChildren();
 
 const route = useRoute();
 // An open section hands the highlight to its active child, but that child can be hidden by user settings.
@@ -44,31 +43,19 @@ const hasActiveChild = (children: SidebarNavChild[]) =>
     isChildActive({ child, isActive: route.matched.some((record) => record.name === child.routeName) }),
   );
 const isChildHighlighted = computed(() => ({
-  accounts: isAccountsOpen.value && hasActiveChild(accountsNavChildren.value),
   transactions: isTransactionsOpen.value && hasActiveChild(SIDEBAR_NAV_CHILDREN.transactions),
   planned: isPlannedOpen.value && hasActiveChild(SIDEBAR_NAV_CHILDREN.planned),
 }));
 const pillRef = ref<HTMLElement | null>(null);
 // Opening or closing the section that holds the current page moves the pill between the parent and its child.
 const isActiveSectionOpen = computed(
-  () =>
-    (isAccountsRoute.value && isAccountsOpen.value) ||
-    (isTransactionsRoute.value && isTransactionsOpen.value) ||
-    (isPlannedRoute.value && isPlannedOpen.value),
+  () => (isTransactionsRoute.value && isTransactionsOpen.value) || (isPlannedRoute.value && isPlannedOpen.value),
 );
 const { indicator } = useSlidingIndicator({
   containerRef: computed(() => pillRef.value?.parentElement),
   activeSelector: '.nav-item-active',
   activeKey: () => `${String(route.name)}|${isActiveSectionOpen.value}`,
 });
-
-watch(
-  isAccountsRoute,
-  (val) => {
-    if (val) isAccountsOpen.value = true;
-  },
-  { immediate: true },
-);
 
 watch(
   isTransactionsRoute,
@@ -109,7 +96,7 @@ watch(
       </ui-button>
     </router-link>
   </template>
-  <router-link v-else-if="accountsNavChildren.length === 1" :to="{ name: ROUTES_NAMES.accounts }">
+  <router-link v-else :to="{ name: ROUTES_NAMES.accounts }">
     <ui-button
       variant="ghost"
       as="span"
@@ -120,46 +107,6 @@ watch(
       <span> {{ $t('navigation.accounts') }} </span>
     </ui-button>
   </router-link>
-  <Collapsible v-else v-model:open="isAccountsOpen">
-    <CollapsibleTrigger class="w-full">
-      <ui-button
-        variant="ghost"
-        as="div"
-        :class="[
-          navItemBase,
-          'justify-start',
-          navItemState({ active: isAccountsRoute, expanded: isChildHighlighted.accounts }),
-        ]"
-        size="default"
-      >
-        <LayersIcon :class="[navIconBase, isAccountsRoute && navIconActive]" />
-        <span>{{ $t('navigation.accounts') }}</span>
-        <ChevronRightIcon
-          :class="['ml-auto size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isAccountsOpen }]"
-        />
-      </ui-button>
-    </CollapsibleTrigger>
-    <CollapsibleContent>
-      <div class="border-border/40 mt-1 ml-2 grid gap-0.5 border-l pl-2">
-        <router-link
-          v-for="child in accountsNavChildren"
-          :key="child.routeName"
-          v-slot="{ isActive }"
-          :to="{ name: child.routeName }"
-        >
-          <ui-button
-            variant="ghost"
-            as="span"
-            :class="[navChildBase, navItemState({ active: isChildActive({ child, isActive }) })]"
-            size="sm"
-          >
-            <component :is="child.icon" :class="[navIconBase, isChildActive({ child, isActive }) && navIconActive]" />
-            <span>{{ $t(child.labelKey) }}</span>
-          </ui-button>
-        </router-link>
-      </div>
-    </CollapsibleContent>
-  </Collapsible>
 
   <template v-if="bottomNav">
     <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">

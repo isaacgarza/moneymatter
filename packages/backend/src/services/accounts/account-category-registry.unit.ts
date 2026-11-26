@@ -4,6 +4,7 @@ import {
   DEDICATED_FLOW_ACCOUNT_CATEGORIES,
   GOAL_ELIGIBLE_ACCOUNT_CATEGORIES,
   NET_WORTH_LIABILITY_KINDS,
+  getAccountSection,
   isDedicatedFlowAccountCategory,
 } from '@bt/shared/types';
 
@@ -51,5 +52,23 @@ describe('account category derived lists', () => {
       ACCOUNT_CATEGORIES.loan,
       ACCOUNT_CATEGORIES.overdraft,
     ]);
+  });
+
+  it('only vehicle and loan leave the banking section; investment and crypto stay in it', () => {
+    const bySection = (section: string) =>
+      Object.values(ACCOUNT_CATEGORIES).filter((category) => getAccountSection(category) === section);
+
+    expect(bySection('assets')).toEqual([ACCOUNT_CATEGORIES.vehicle]);
+    expect(bySection('loans')).toEqual([ACCOUNT_CATEGORIES.loan]);
+    expect(bySection('investing')).toEqual([]);
+    expect(bySection('banking')).toEqual(
+      Object.values(ACCOUNT_CATEGORIES).filter(
+        (category) => category !== ACCOUNT_CATEGORIES.vehicle && category !== ACCOUNT_CATEGORIES.loan,
+      ),
+    );
+  });
+
+  it('an unknown category lands in banking', () => {
+    expect(getAccountSection('from-a-newer-server' as ACCOUNT_CATEGORIES)).toBe('banking');
   });
 });

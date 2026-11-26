@@ -40,7 +40,7 @@
           <div class="flex items-center justify-between gap-4">
             <span class="flex items-center gap-2 text-sm">
               <LayersIcon class="text-muted-foreground size-4 shrink-0" />
-              {{ $t('sidebar.accountsView.bankAccounts') }}
+              {{ $t('sidebar.accountsView.banking') }}
             </span>
             <ResponsiveTooltip :content="$t('settings.appearance.sidebar.alwaysVisibleTooltip')">
               <span class="text-muted-foreground flex cursor-help items-center gap-2">
@@ -63,34 +63,6 @@
               :model-value="sidebarSections[section.key]"
               :disabled="isUpdating"
               @update:model-value="(v) => toggleSection(section.key, !!v)"
-            />
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      <!-- Sidebar Navigation -->
-      <div>
-        <h3 class="mb-2 text-lg font-medium">{{ $t('settings.appearance.sidebarNav.title') }}</h3>
-        <p class="mb-4 text-sm leading-relaxed">
-          {{ $t('settings.appearance.sidebarNav.description') }}
-        </p>
-
-        <div class="flex flex-col gap-3">
-          <div
-            v-for="item in TOGGLEABLE_ACCOUNTS_NAV_CHILDREN"
-            :key="item.settingKey"
-            class="flex items-center justify-between gap-4"
-          >
-            <span class="flex items-center gap-2 text-sm">
-              <component :is="item.icon" class="text-muted-foreground size-4 shrink-0" />
-              {{ $t(item.labelKey) }}
-            </span>
-            <Switch
-              :model-value="userSettings?.sidebarNav?.[item.settingKey] !== false"
-              :disabled="isPatching"
-              @update:model-value="(v) => patch({ sidebarNav: { [item.settingKey]: !!v } })"
             />
           </div>
         </div>
@@ -172,7 +144,6 @@ import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
-import { TOGGLEABLE_ACCOUNTS_NAV_CHILDREN } from '@/components/sidebar/nav-items';
 import { Switch } from '@/components/lib/ui/switch';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { TOGGLEABLE_SIDEBAR_SECTIONS, useSidebarSections } from '@/composable/use-sidebar-sections';

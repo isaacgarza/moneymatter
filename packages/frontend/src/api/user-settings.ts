@@ -21,13 +21,6 @@ export interface DashboardWidgetConfig {
   config?: Record<string, unknown>;
 }
 
-/** Optional links under the sidebar's Accounts nav group. Each is visible when unset. */
-export interface SidebarNavConfig {
-  loans?: boolean;
-  investments?: boolean;
-  venture?: boolean;
-}
-
 export type TransactionsView = 'list' | 'table';
 
 interface TransactionsTableSettings {
@@ -120,7 +113,6 @@ export interface UserSettingsSchema {
   /** UTC hours of the scheduled bank sync, at most two. 06:00 and 18:00 when unset. */
   bankSyncHoursUtc?: number[];
   sidebarSections?: SidebarSectionsConfig;
-  sidebarNav?: SidebarNavConfig;
   payeeExtractionUsesDescription?: boolean;
   /** Transactions sharing a raw merchant name before a Payee is auto-created. Defaults to 2. */
   payeePromotionThreshold?: 1 | 2 | 3;

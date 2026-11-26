@@ -2,9 +2,6 @@
   "navigation": {
     "dashboard": "Dashboard",
     "accounts": "Accounts",
-    "accountsList": "All accounts",
-    "investments": "Investments",
-    "loans": "Loans",
     "allTransactions": "All transactions",
     "transactions": "Transactions",
     "transactionGroups": "Groups",
@@ -26,7 +23,6 @@
       "budgets": "Trackers",
       "goals": "Goals"
     },
-    "venture": "Venture",
     "budget": "Budget"
   },
   "sidebar": {
@@ -48,14 +44,15 @@
     },
     "accountsView": {
       "title": "Accounts",
-      "bankAccounts": "Bank accounts",
+      "banking": "Banking",
       "newAccount": "New account",
       "newAccountsGroup": "New accounts group",
+      "investing": "Investing",
       "portfolios": "Portfolios",
       "newPortfolio": "New portfolio",
       "noPortfolios": "No portfolios yet",
       "ventures": "Ventures",
-      "cars": "Vehicles",
+      "assets": "Assets",
       "loans": "Loans",
       "collapseNavigation": "Collapse navigation",
       "viaHousehold": "Shared via {handle}'s household",

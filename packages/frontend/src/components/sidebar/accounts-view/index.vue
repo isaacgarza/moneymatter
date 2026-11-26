@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { waitForAnimationEnd } from '@/composable/wait-for-animation-end';
 import { ROUTES_NAMES } from '@/routes/constants';
+import { ACCOUNT_SECTIONS, type AccountSectionId } from '@bt/shared/types';
 import {
   CarIcon,
   ChevronsUpDownIcon,
@@ -39,17 +40,17 @@ const {
   accountGroups,
   isLoading,
   accountsWithoutGroups,
-  vehicleAccounts,
+  assetAccounts,
   baseCurrencyCode,
   bankAccountsTotal,
   portfoliosTotal,
   isPortfoliosTotalLoading,
-  venturesCount,
-  carsTotal,
+  assetsTotal,
   loansTotal,
   showPortfolios,
   venturesVisible,
-  carsVisible,
+  investingVisible,
+  assetsVisible,
   loansVisible,
 } = useSidebarSectionTotals();
 
@@ -59,66 +60,43 @@ provide('accountGroupsContext', accountGroupsContext);
 const isPopoverOpen = ref(false);
 const { hasAnyOpen, collapseAll } = useSidebarNavCollapse();
 
-const isBankAccountsOpen = useLocalStorage('sidebar:accounts-bank-open', true);
-const isPortfoliosOpen = useLocalStorage('sidebar:accounts-portfolios-open', true);
-const isVenturesOpen = useLocalStorage('sidebar:accounts-ventures-open', true);
-const isCarsOpen = useLocalStorage('sidebar:accounts-cars-open', true);
+const isBankingOpen = useLocalStorage('sidebar:accounts-banking-open', true);
+const isInvestingOpen = useLocalStorage('sidebar:accounts-investing-open', true);
+const isAssetsOpen = useLocalStorage('sidebar:accounts-assets-open', true);
 const isLoansOpen = useLocalStorage('sidebar:accounts-loans-open', true);
 
-type SidebarSection = 'bank' | 'portfolios' | 'ventures' | 'cars' | 'loans';
+// The section ids and their order come from the account registry. `orderedVisibleSections` drops the
+// ones hidden by user prefs or emptiness (zero-count assets/loans auto-hide); `computeStickyOffsets`
+// turns that order into per-section stacked sticky-header offsets. Banking is always first and
+// rendered with a plain `top-0` and no bottom, so its computed entry is only used to count sections above.
+const sectionVisibility = computed<Record<AccountSectionId, boolean>>(() => ({
+  banking: true,
+  investing: investingVisible.value,
+  assets: assetsVisible.value,
+  loans: loansVisible.value,
+}));
 
-// Ordered, top-to-bottom section list. `orderedVisibleSections` drops the ones hidden by user
-// prefs or emptiness (zero-count ventures/cars/loans auto-hide); `computeStickyOffsets` turns
-// that order into per-section stacked sticky-header offsets. Bank is always first and rendered
-// with a plain `top-0` and no bottom, so its computed entry is only used to count sections above.
-const SIDEBAR_SECTIONS = [
-  'bank',
-  'portfolios',
-  'ventures',
-  'cars',
-  'loans',
-] as const satisfies readonly SidebarSection[];
-
-const orderedVisibleSections = computed<SidebarSection[]>(() =>
-  (
-    [
-      { key: 'bank', visible: true },
-      { key: 'portfolios', visible: showPortfolios.value },
-      { key: 'ventures', visible: venturesVisible.value },
-      { key: 'cars', visible: carsVisible.value },
-      { key: 'loans', visible: loansVisible.value },
-    ] as const
-  )
-    .filter((section) => section.visible)
-    .map((section) => section.key),
+const orderedVisibleSections = computed<AccountSectionId[]>(() =>
+  ACCOUNT_SECTIONS.filter((section) => sectionVisibility.value[section]),
 );
 
 const stickyOffsets = computed(() =>
-  computeStickyOffsets({ allKeys: SIDEBAR_SECTIONS, visibleInOrder: orderedVisibleSections.value }),
+  computeStickyOffsets({ allKeys: ACCOUNT_SECTIONS, visibleInOrder: orderedVisibleSections.value }),
 );
 
 const route = useRoute();
-const isPortfolioRoute = computed(
-  () => route.name === ROUTES_NAMES.portfolioDetail || route.name === ROUTES_NAMES.portfolioTransactionsImport,
-);
-watch(
-  isPortfolioRoute,
-  (val) => {
-    if (val) isPortfoliosOpen.value = true;
-  },
-  { immediate: true },
-);
-
-const isVentureRoute = computed(
+const isInvestingRoute = computed(
   () =>
+    route.name === ROUTES_NAMES.portfolioDetail ||
+    route.name === ROUTES_NAMES.portfolioTransactionsImport ||
     route.name === ROUTES_NAMES.venture ||
     route.name === ROUTES_NAMES.venturePlatformsList ||
     route.name === ROUTES_NAMES.ventureDealDetail,
 );
 watch(
-  isVentureRoute,
+  isInvestingRoute,
   (val) => {
-    if (val) isVenturesOpen.value = true;
+    if (val) isInvestingOpen.value = true;
   },
   { immediate: true },
 );
@@ -209,9 +187,10 @@ const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement
       </template>
       <template v-else>
         <SidebarCollapsibleSection
-          v-model:open="isBankAccountsOpen"
+          v-model:open="isBankingOpen"
           :icon="LayersIcon"
-          :label="$t('sidebar.accountsView.bankAccounts')"
+          :label="$t('sidebar.accountsView.banking')"
+          :to="{ name: ROUTES_NAMES.accounts }"
           top-class="top-0"
           @expand="onSectionExpand"
         >
@@ -229,15 +208,16 @@ const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement
         </SidebarCollapsibleSection>
 
         <SidebarCollapsibleSection
-          v-if="showPortfolios"
-          v-model:open="isPortfoliosOpen"
+          v-if="investingVisible"
+          v-model:open="isInvestingOpen"
           :icon="TrendingUpIcon"
-          :label="$t('sidebar.accountsView.portfolios')"
-          :top-class="stickyOffsets.portfolios.top"
-          :bottom-class="stickyOffsets.portfolios.bottom"
+          :label="$t('sidebar.accountsView.investing')"
+          :to="{ name: ROUTES_NAMES.investments }"
+          :top-class="stickyOffsets.investing.top"
+          :bottom-class="stickyOffsets.investing.bottom"
           @expand="onSectionExpand"
         >
-          <template v-if="baseCurrencyCode" #trailing>
+          <template v-if="baseCurrencyCode && showPortfolios" #trailing>
             <GroupTotal
               tiny
               :amount="portfoliosTotal.total"
@@ -247,41 +227,38 @@ const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement
               emphasis
             />
           </template>
-          <PortfoliosList />
+          <PortfoliosList v-if="showPortfolios" />
+          <template v-if="venturesVisible">
+            <router-link
+              :to="{ name: ROUTES_NAMES.venture }"
+              class="text-muted-foreground hover:text-foreground mt-1 flex items-center gap-2 px-3 py-1 text-xs font-medium"
+            >
+              <RocketIcon class="size-3.5 shrink-0" />
+              {{ $t('sidebar.accountsView.ventures') }}
+            </router-link>
+            <VenturesList />
+          </template>
         </SidebarCollapsibleSection>
 
         <SidebarCollapsibleSection
-          v-if="venturesVisible"
-          v-model:open="isVenturesOpen"
-          :icon="RocketIcon"
-          :label="$t('sidebar.accountsView.ventures')"
-          :count="venturesCount"
-          :top-class="stickyOffsets.ventures.top"
-          :bottom-class="stickyOffsets.ventures.bottom"
-          @expand="onSectionExpand"
-        >
-          <VenturesList />
-        </SidebarCollapsibleSection>
-
-        <SidebarCollapsibleSection
-          v-if="carsVisible"
-          v-model:open="isCarsOpen"
+          v-if="assetsVisible"
+          v-model:open="isAssetsOpen"
           :icon="CarIcon"
-          :label="$t('sidebar.accountsView.cars')"
-          :top-class="stickyOffsets.cars.top"
-          :bottom-class="stickyOffsets.cars.bottom"
+          :label="$t('sidebar.accountsView.assets')"
+          :top-class="stickyOffsets.assets.top"
+          :bottom-class="stickyOffsets.assets.bottom"
           @expand="onSectionExpand"
         >
           <template v-if="baseCurrencyCode" #trailing>
             <GroupTotal
               tiny
-              :amount="carsTotal.total"
+              :amount="assetsTotal.total"
               :currency-code="baseCurrencyCode"
-              :is-approx="carsTotal.isApprox"
+              :is-approx="assetsTotal.isApprox"
               emphasis
             />
           </template>
-          <AccountsList :accounts="vehicleAccounts" />
+          <AccountsList :accounts="assetAccounts" />
         </SidebarCollapsibleSection>
 
         <SidebarCollapsibleSection
@@ -289,6 +266,7 @@ const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement
           v-model:open="isLoansOpen"
           :icon="HandCoinsIcon"
           :label="$t('sidebar.accountsView.loans')"
+          :to="{ name: ROUTES_NAMES.loans }"
           :top-class="stickyOffsets.loans.top"
           :bottom-class="stickyOffsets.loans.bottom"
           @expand="onSectionExpand"

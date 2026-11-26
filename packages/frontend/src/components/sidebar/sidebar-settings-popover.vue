@@ -92,7 +92,7 @@ const goTo = (target: View) => {
               <div class="flex items-center justify-between gap-2 rounded-md px-2 py-2">
                 <span class="flex items-center gap-2 text-sm font-medium">
                   <LayersIcon class="text-muted-foreground size-4 shrink-0" />
-                  {{ $t('sidebar.accountsView.bankAccounts') }}
+                  {{ $t('sidebar.accountsView.banking') }}
                 </span>
                 <ResponsiveTooltip :content="$t('sidebar.settings.sections.alwaysVisibleTooltip')">
                   <span class="text-muted-foreground flex cursor-help items-center gap-2">

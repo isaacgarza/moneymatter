@@ -2,9 +2,6 @@
   "navigation": {
     "dashboard": "Головна",
     "accounts": "Рахунки",
-    "accountsList": "Усі рахунки",
-    "investments": "Інвестиції",
-    "loans": "Кредити",
     "allTransactions": "Всі транзакції",
     "transactions": "Транзакції",
     "transactionGroups": "Групи",
@@ -26,7 +23,6 @@
       "budgets": "Трекери",
       "goals": "Цілі"
     },
-    "venture": "Венчур",
     "budget": "Бюджет"
   },
   "sidebar": {
@@ -48,14 +44,15 @@
     },
     "accountsView": {
       "title": "Рахунки",
-      "bankAccounts": "Банківські рахунки",
+      "banking": "Банківські рахунки",
       "newAccount": "Новий рахунок",
       "newAccountsGroup": "Нова група рахунків",
+      "investing": "Інвестиції",
       "portfolios": "Портфелі",
       "newPortfolio": "Новий портфель",
       "noPortfolios": "Поки немає портфелів",
       "ventures": "Венчури",
-      "cars": "Транспорт",
+      "assets": "Активи",
       "loans": "Кредити",
       "collapseNavigation": "Згорнути навігацію",
       "viaHousehold": "Через сім'ю {handle}",

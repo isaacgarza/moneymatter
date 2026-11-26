@@ -81,11 +81,22 @@ export type AccountIconId =
   | 'car'
   | 'hand-coins';
 
+/**
+ * The sections accounts are listed under in the sidebar and on the Accounts page, in display order.
+ * `investing` has no account categories yet: portfolios and ventures are separate entities that
+ * render in it, and investment and crypto accounts stay under `banking` until portfolios become
+ * account details.
+ */
+export const ACCOUNT_SECTIONS = ['banking', 'investing', 'assets', 'loans'] as const;
+export type AccountSectionId = (typeof ACCOUNT_SECTIONS)[number];
+
 interface AccountCategoryDefinition {
   /** i18n key of the category's display name. */
   labelKey: string;
   icon: AccountIconId;
   color: AccountColorId;
+  /** The section the category's accounts are listed under. */
+  section: AccountSectionId;
   /**
    * Owns a required 1:1 sidecar row (LoanDetails, Vehicles) and a dedicated
    * creation flow (`/loans`, `/vehicles`). Such an account must never be created
@@ -104,19 +115,20 @@ interface AccountCategoryDefinition {
   netWorthLiability: boolean;
 }
 
-const FLAG_DEFAULTS = {
+const DEFAULTS = {
+  section: 'banking',
   dedicatedFlow: false,
   goalEligible: false,
   budgetAttachable: false,
   netWorthLiability: false,
 } as const;
 
-type FlagOverrides = Partial<Pick<AccountCategoryDefinition, keyof typeof FLAG_DEFAULTS>>;
+type Overrides = Partial<Pick<AccountCategoryDefinition, keyof typeof DEFAULTS>>;
 
-// Generic so each flag keeps its literal `true`/`false` type; the derived category lists are typed from it.
-const definition = <const T extends Pick<AccountCategoryDefinition, 'labelKey' | 'icon' | 'color'> & FlagOverrides>(
+// Generic so each flag keeps its literal type; the derived category lists are typed from it.
+const definition = <const T extends Pick<AccountCategoryDefinition, 'labelKey' | 'icon' | 'color'> & Overrides>(
   entry: T,
-): Readonly<Omit<typeof FLAG_DEFAULTS, keyof T> & T> => ({ ...FLAG_DEFAULTS, ...entry });
+): Readonly<Omit<typeof DEFAULTS, keyof T> & T> => ({ ...DEFAULTS, ...entry });
 
 /**
  * The one place that describes each account category. Behaviour lists, labels, icons and colours
@@ -178,6 +190,7 @@ export const ACCOUNT_CATEGORY_REGISTRY = {
     labelKey: 'common.accountCategories.loan',
     icon: 'hand-coins',
     color: 'checking',
+    section: 'loans',
     dedicatedFlow: true,
     netWorthLiability: true,
   }),
@@ -198,6 +211,7 @@ export const ACCOUNT_CATEGORY_REGISTRY = {
     labelKey: 'common.accountCategories.vehicle',
     icon: 'car',
     color: 'vehicle',
+    section: 'assets',
     dedicatedFlow: true,
   }),
 } as const satisfies Record<ACCOUNT_CATEGORIES, AccountCategoryDefinition>;
@@ -222,6 +236,10 @@ export const isDedicatedFlowAccountCategory = (
 ): category is DedicatedFlowAccountCategory =>
   // An unknown category (a newer server value) is not dedicated-flow.
   ACCOUNT_CATEGORY_REGISTRY[category]?.dedicatedFlow ?? false;
+
+/** The section a category's accounts are listed under; an unknown category (a newer server value) lands in `banking`. */
+export const getAccountSection = (category: ACCOUNT_CATEGORIES): AccountSectionId =>
+  ACCOUNT_CATEGORY_REGISTRY[category]?.section ?? 'banking';
 
 export const GOAL_ELIGIBLE_ACCOUNT_CATEGORIES: readonly ACCOUNT_CATEGORIES[] = categoriesWithFlag('goalEligible');
 
