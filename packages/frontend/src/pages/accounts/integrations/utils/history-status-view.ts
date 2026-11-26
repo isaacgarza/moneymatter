@@ -15,6 +15,13 @@ export const historyProgressPercent = ({ history }: { history: BankHistoryStatus
   return Math.min(100, Math.max(0, Math.round((history.windowsDone / history.windowsTotal) * 100)));
 };
 
+/**
+ * Whether the page-top strip is shown: while the load is in flight or stuck. A finished or
+ * switched-off load shows nothing there, only the state in the Manage menu.
+ */
+export const isHistoryStripVisible = ({ history }: { history: BankHistoryStatus | null | undefined }): boolean =>
+  isHistoryLoading({ history }) || history?.state === BANK_HISTORY_STATE.attention;
+
 /** Whether more loading is expected, so the page keeps refreshing the progress. */
 export const isHistoryLoading = ({ history }: { history: BankHistoryStatus | null | undefined }): boolean =>
   !!history &&

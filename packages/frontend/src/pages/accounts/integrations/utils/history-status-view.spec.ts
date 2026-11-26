@@ -1,7 +1,7 @@
 import { BANK_HISTORY_STATE, type BankHistoryStatus } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
-import { historyProgressPercent, isHistoryLoading } from './history-status-view';
+import { historyProgressPercent, isHistoryLoading, isHistoryStripVisible } from './history-status-view';
 
 const status = (overrides: Partial<BankHistoryStatus> = {}): BankHistoryStatus => ({
   startDate: '2025-01-01',
@@ -27,6 +27,25 @@ describe('historyProgressPercent', () => {
   it('never leaves the 0 to 100 range', () => {
     expect(historyProgressPercent({ history: status({ windowsDone: 5, windowsTotal: 3 }) })).toBe(100);
     expect(historyProgressPercent({ history: status({ windowsDone: -1, windowsTotal: 3 }) })).toBe(0);
+  });
+});
+
+describe('isHistoryStripVisible', () => {
+  it('shows while loading is pending, running, paused or needs attention', () => {
+    for (const state of [
+      BANK_HISTORY_STATE.pending,
+      BANK_HISTORY_STATE.running,
+      BANK_HISTORY_STATE.cooldown,
+      BANK_HISTORY_STATE.attention,
+    ]) {
+      expect(isHistoryStripVisible({ history: status({ state }) })).toBe(true);
+    }
+  });
+
+  it('is hidden once complete or when no history is set up', () => {
+    expect(isHistoryStripVisible({ history: status({ state: BANK_HISTORY_STATE.complete }) })).toBe(false);
+    expect(isHistoryStripVisible({ history: null })).toBe(false);
+    expect(isHistoryStripVisible({ history: undefined })).toBe(false);
   });
 });
 
