@@ -92,6 +92,13 @@
                 <PencilIcon class="size-4" />
                 {{ $t('pages.integrations.details.actions.renameButton') }}
               </DropdownMenuItem>
+              <DropdownMenuItem v-if="connectionDetails.supportsHistoryBackfill" @select="openHistoryDialog">
+                <HistoryIcon class="size-4" />
+                <span class="flex flex-col">
+                  {{ $t('pages.integrations.details.history.title') }}
+                  <span class="text-muted-foreground text-xs">{{ historyMenuStateLabel }}</span>
+                </span>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 class="text-destructive-text"
@@ -233,6 +240,29 @@
           </UiButton>
         </div>
 
+        <div
+          v-if="connectionDetails.supportsHistoryBackfill && connectionDetails.history && showHistoryStrip"
+          :class="
+            cn(
+              'mt-3 rounded-lg border px-3 py-2.5 text-sm',
+              connectionDetails.history.state === BANK_HISTORY_STATE.attention
+                ? 'border-warning/25 bg-warning/10 text-warning-text'
+                : 'border-border bg-muted/40',
+            )
+          "
+        >
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <HistoryIcon class="size-4 shrink-0" />
+            <p class="min-w-40 flex-1 tabular-nums">{{ historyStripLabel }}</p>
+            <UiButton variant="outline" size="sm" class="w-full @sm/connection:w-auto" @click="openHistoryDialog">
+              {{ $t('pages.integrations.details.history.strip.manage') }}
+            </UiButton>
+          </div>
+          <div class="bg-muted mt-2 h-1.5 overflow-hidden rounded-full">
+            <div class="bg-primary h-full rounded-full transition-all" :style="{ width: `${historyPercent}%` }" />
+          </div>
+        </div>
+
         <div class="mt-6 mb-2 flex min-h-8 flex-wrap items-center justify-between gap-2 px-1">
           <div class="flex items-center gap-2">
             <h2 class="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
@@ -261,13 +291,6 @@
           :needs-attention-count="failedSyncCount"
           :total-label="leadTotalLabel"
           @connect-remaining="openFetchAccountsDialog"
-        />
-
-        <ConnectionHistoryCard
-          v-if="connectionDetails.supportsHistoryBackfill"
-          class="mt-4"
-          :connection-id="connectionId"
-          :history="connectionDetails.history"
         />
       </div>
 
@@ -352,6 +375,12 @@
       @save="handleSaveConnectionName"
     />
 
+    <ConnectionHistoryDialog
+      v-model:open="isHistoryDialogOpen"
+      :connection-id="connectionId"
+      :history="connectionDetails?.history ?? null"
+    />
+
     <!-- Reconnect Confirmation Dialog -->
     <ReconnectConfirmationDialog
       v-model:open="isReconnectDialogOpen"
@@ -402,13 +431,14 @@ import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
-import { BANK_PROVIDER_TYPE, DEACTIVATION_REASON } from '@bt/shared/types';
+import { BANK_HISTORY_STATE, BANK_PROVIDER_TYPE, DEACTIVATION_REASON } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import {
   ArrowLeftIcon,
   CircleAlertIcon,
   EllipsisIcon,
+  HistoryIcon,
   KeyRoundIcon,
   PencilIcon,
   RefreshCwIcon,
@@ -416,6 +446,7 @@ import {
   TriangleAlertIcon,
   UnlinkIcon,
 } from '@lucide/vue';
+import { parseISO } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -423,13 +454,13 @@ import { useRoute, useRouter } from 'vue-router';
 
 import ConnectAccountsDialog from './components/connect-accounts-dialog.vue';
 import ConnectionAccountsTable from './components/connection-accounts-table.vue';
-import ConnectionHistoryCard from './components/connection-history-card.vue';
+import ConnectionHistoryDialog from './components/connection-history-dialog.vue';
 import DisconnectIntegrationDialog from './components/disconnect-integration-dialog.vue';
 import EditConnectionNameDialog from './components/edit-connection-name-dialog.vue';
 import IntegrationDetailsSkeleton from './components/integration-details-skeleton.vue';
 import ReconnectConfirmationDialog from './components/reconnect-confirmation-dialog.vue';
 import { buildProviderCredentials } from './utils/build-provider-credentials';
-import { isHistoryLoading } from './utils/history-status-view';
+import { historyProgressPercent, isHistoryLoading, isHistoryStripVisible } from './utils/history-status-view';
 
 const route = useRoute();
 const router = useRouter();
@@ -441,6 +472,7 @@ const connectionId = computed(() => String(route.params.connectionId));
 const isFetchAccountsDialogOpen = ref(false);
 const isDisconnectDialogOpen = ref(false);
 const isEditNameDialogOpen = ref(false);
+const isHistoryDialogOpen = ref(false);
 const isReconnectDialogOpen = ref(false);
 const isUpdateCredentialsDialogOpen = ref(false);
 const newApiKey = ref('');
@@ -494,6 +526,39 @@ const lastSyncLabel = computed(() => {
 const connectedSinceLabel = computed(() =>
   connectionDetails.value ? formatDateLocale(connectionDetails.value.createdAt, 'MMM yyyy') : '',
 );
+
+const showHistoryStrip = computed(() => isHistoryStripVisible({ history: connectionDetails.value?.history }));
+
+const historyPercent = computed(() => {
+  const history = connectionDetails.value?.history;
+  return history ? historyProgressPercent({ history }) : 0;
+});
+
+const historyMenuStateLabel = computed(() => {
+  const history = connectionDetails.value?.history;
+  return history
+    ? t(`pages.integrations.details.history.state.${history.state}`)
+    : t('pages.integrations.details.history.notSetUp');
+});
+
+const historyStripLabel = computed(() => {
+  const history = connectionDetails.value?.history;
+  if (!history) return '';
+  const parts = [
+    t(`pages.integrations.details.history.strip.${history.state}`, {
+      date: formatDateLocale(parseISO(history.startDate), 'PP'),
+    }),
+    t('pages.integrations.details.history.progress', { done: history.windowsDone, total: history.windowsTotal }),
+  ];
+  if (history.nextRunAt) {
+    parts.push(
+      t('pages.integrations.details.history.nextRun', {
+        when: formatDistanceToNow(new Date(history.nextRunAt), { addSuffix: true }),
+      }),
+    );
+  }
+  return parts.join(' · ');
+});
 
 const consentValidUntilLabel = computed(() => {
   const validUntil = connectionDetails.value?.consent?.validUntil;
@@ -791,6 +856,10 @@ const openFetchAccountsDialog = () => {
 
 const openDisconnectDialog = () => {
   isDisconnectDialogOpen.value = true;
+};
+
+const openHistoryDialog = () => {
+  isHistoryDialogOpen.value = true;
 };
 
 const openEditNameDialog = () => {

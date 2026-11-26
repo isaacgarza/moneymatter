@@ -370,6 +370,14 @@
           "nextRun": "continues {when}",
           "lastError": "Last error: {message}",
           "forwardOnlyNote": "Accounts linked forward-only can't load transactions from before the day they were linked.",
+          "notSetUp": "Not set up",
+          "strip": {
+            "manage": "Manage",
+            "pending": "Transaction history back to {date} will start soon",
+            "running": "Loading transaction history back to {date}",
+            "cooldown": "Transaction history loading is paused (back to {date})",
+            "attention": "Some transaction history back to {date} couldn't be loaded"
+          },
           "state": {
             "pending": "Waiting to start",
             "running": "Loading",
