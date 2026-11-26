@@ -1,6 +1,8 @@
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogContent class="sm:max-w-md">
+    <!-- The date field would take the focus on open, and iOS Safari shows its date picker for a focused date input. -->
+    <!-- The date field would take the focus on open, and iOS Safari shows its date picker for a focused date input. -->
+    <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
       <DialogHeader>
         <DialogTitle>{{ $t('pages.integrations.details.history.title') }}</DialogTitle>
         <DialogDescription>{{ $t('pages.integrations.details.history.description') }}</DialogDescription>
