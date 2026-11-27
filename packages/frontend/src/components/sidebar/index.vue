@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import FeedbackIcon from '@/components/common/icons/feedback-icon.vue';
 import ResizeHandle from '@/components/common/resize-handle.vue';
-import FeedbackDialog from '@/components/dialogs/feedback-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
-import { useFeedbackAttention } from '@/composable/use-feedback-attention';
 import { useResizableWidth } from '@/composable/use-resizable-width';
-import { useSupportButton } from '@/composable/use-support-button';
-import { HeartIcon, PanelLeftIcon } from '@lucide/vue';
+import { PanelLeftIcon } from '@lucide/vue';
 
 import AccountsView from './accounts-view/index.vue';
 import HideAmountsButton from './hide-amounts-button.vue';
@@ -25,8 +21,6 @@ const { width, startResize, resetWidth } = useResizableWidth({
   defaultWidth: 300,
   edge: 'right',
 });
-const { isPulsing: isFeedbackPulsing, onClick: onFeedbackClick } = useFeedbackAttention();
-const { isSupportButtonVisible, openSupport } = useSupportButton();
 </script>
 
 <template>
@@ -67,28 +61,6 @@ const { isSupportButtonVisible, openSupport } = useSupportButton();
             <PanelLeftIcon class="size-4" />
           </UiButton>
         </DesktopOnlyTooltip>
-        <template v-else>
-          <FeedbackDialog>
-            <UiButton
-              variant="ghost"
-              size="icon-sm"
-              :class="{ 'feedback-pulse': isFeedbackPulsing }"
-              :aria-label="$t('header.feedback')"
-              @click="onFeedbackClick"
-            >
-              <FeedbackIcon class="text-primary-text size-4" />
-            </UiButton>
-          </FeedbackDialog>
-          <UiButton
-            v-if="isSupportButtonVisible"
-            variant="ghost"
-            size="icon-sm"
-            :aria-label="$t('header.support')"
-            @click="openSupport"
-          >
-            <HeartIcon class="text-heart size-4 fill-current" />
-          </UiButton>
-        </template>
       </div>
     </CardContent>
   </component>

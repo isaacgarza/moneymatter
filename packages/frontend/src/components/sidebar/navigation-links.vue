@@ -34,7 +34,7 @@ const navIconBase = 'size-4 shrink-0';
 const navIconActive = 'text-primary-text';
 
 const { isTransactionsOpen, isPlannedOpen } = useSidebarNavCollapse();
-const { isAccountsRoute, isTransactionsRoute, isPlannedRoute, isChildActive } = useSidebarNavRoutes();
+const { isTransactionsRoute, isPlannedRoute, isChildActive } = useSidebarNavRoutes();
 
 const route = useRoute();
 // An open section hands the highlight to its active child, but that child can be hidden by user settings.
@@ -96,18 +96,6 @@ watch(
       </ui-button>
     </router-link>
   </template>
-  <router-link v-else :to="{ name: ROUTES_NAMES.accounts }">
-    <ui-button
-      variant="ghost"
-      as="span"
-      :class="[navItemBase, 'justify-start', navItemState({ active: isAccountsRoute })]"
-      size="default"
-    >
-      <LayersIcon :class="[navIconBase, isAccountsRoute && navIconActive]" />
-      <span> {{ $t('navigation.accounts') }} </span>
-    </ui-button>
-  </router-link>
-
   <template v-if="bottomNav">
     <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">
       <ui-button variant="ghost" as="span" :class="[navItemBase, navItemState({ active: isActive })]" size="default">
