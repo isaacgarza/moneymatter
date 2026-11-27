@@ -6,7 +6,6 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useResizableWidth } from '@/composable/use-resizable-width';
 import { PanelLeftIcon } from '@lucide/vue';
 
-import AccountsView from './accounts-view/index.vue';
 import HideAmountsButton from './hide-amounts-button.vue';
 import NavigationLinks from './navigation-links.vue';
 import { useSidebarCollapsed } from './use-sidebar-collapsed';
@@ -48,11 +47,7 @@ const { width, startResize, resetWidth } = useResizableWidth({
         <NavigationLinks />
       </nav>
 
-      <div class="bg-border/50 mx-1 h-px" />
-
-      <AccountsView />
-
-      <div v-if="!mobileView" class="bg-border/50 mx-1 h-px" />
+      <div class="bg-border/50 mx-1 mt-auto h-px" />
 
       <div class="flex items-center justify-end gap-1">
         <HideAmountsButton />
