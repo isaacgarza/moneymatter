@@ -1,6 +1,7 @@
 import { useAccountGroupsQuery } from '@/composable/data-queries/account-groups';
 import { useLoans } from '@/composable/data-queries/loans';
 import { usePortfolioSummaries } from '@/composable/data-queries/portfolio-summary';
+import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { useVentureDeals } from '@/composable/data-queries/venture/deals';
 import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { useIdleEnabled } from '@/composable/use-idle-enabled';
@@ -79,9 +80,12 @@ export const useSidebarSectionTotals = () => {
 
   const { sidebarSections } = useSidebarSections();
 
-  const showPortfolios = computed(() => sidebarSections.value.portfolios);
+  // Every section hides while it is empty, so Investing needs a live portfolio or a venture, not just the setting.
+  const { data: portfolios } = usePortfolios();
+  const portfoliosCount = computed(() => (portfolios.value ?? []).filter((portfolio) => !portfolio.deletedAt).length);
+  const showPortfolios = computed(() => sidebarSections.value.portfolios && portfoliosCount.value > 0);
   const venturesVisible = computed(() => sidebarSections.value.ventures && venturesCount.value > 0);
-  // Investing holds portfolios and ventures, so it shows while either does.
+  // Investing holds portfolios and ventures, so it shows while either has something in it.
   const investingVisible = computed(() => showPortfolios.value || venturesVisible.value);
   const assetsVisible = computed(() => sidebarSections.value.vehicles && assetsCount.value > 0);
   const loansVisible = computed(() => sidebarSections.value.loans && loansCount.value > 0);
