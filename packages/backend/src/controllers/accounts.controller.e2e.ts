@@ -473,6 +473,20 @@ describe('Accounts controller', () => {
       expect(updated.initialBalance).toBe(2000);
     });
 
+    describe('removed categories', () => {
+      it.each(['current-account', 'bonus', 'insurance'])(
+        'rejects creating an account in the %s category',
+        async (category) => {
+          const response = await helpers.createAccount({
+            payload: { ...helpers.buildAccountPayload(), accountCategory: category as ACCOUNT_CATEGORIES },
+            raw: false,
+          });
+
+          expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+        },
+      );
+    });
+
     describe('dedicated-flow categories', () => {
       const createGeneralAccount = () =>
         helpers.createAccount({

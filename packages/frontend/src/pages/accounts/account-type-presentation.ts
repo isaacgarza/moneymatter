@@ -9,11 +9,8 @@ import {
   BitcoinIcon,
   CarIcon,
   CreditCardIcon,
-  GiftIcon,
   HandCoinsIcon,
-  LandmarkIcon,
   PiggyBankIcon,
-  ShieldIcon,
   TrendingUpIcon,
   WalletIcon,
 } from '@lucide/vue';
@@ -28,10 +25,7 @@ import type { Component } from 'vue';
  */
 
 const ACCOUNT_ICONS: Record<AccountIconId, Component> = {
-  landmark: LandmarkIcon,
   wallet: WalletIcon,
-  gift: GiftIcon,
-  shield: ShieldIcon,
   'piggy-bank': PiggyBankIcon,
   'credit-card': CreditCardIcon,
   banknote: BanknoteIcon,

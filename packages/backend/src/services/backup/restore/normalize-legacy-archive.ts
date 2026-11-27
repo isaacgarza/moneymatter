@@ -68,6 +68,21 @@ function normalizeSettings({ settings }: { settings: Row }): void {
 }
 
 /**
+ * Categories an older archive may still carry that no longer exist; each account holding one
+ * restores as `general`, like the migration that merged them. `cash` is not listed: it is still a
+ * valid category, and only rows already in a database were moved off it.
+ */
+const REMOVED_ACCOUNT_CATEGORIES = new Set(['current-account', 'bonus', 'insurance']);
+
+function mergeRemovedAccountCategories({ parsedByPath }: { parsedByPath: Map<string, unknown> }): void {
+  for (const row of rowsAt({ parsedByPath, name: 'accounts' })) {
+    if (typeof row.accountCategory === 'string' && REMOVED_ACCOUNT_CATEGORIES.has(row.accountCategory)) {
+      row.accountCategory = 'general';
+    }
+  }
+}
+
+/**
  * Category trackers were computed live and have no TrackerTransactions rows. They become rules
  * trackers that sync on the next visit or cron run. One with no categories stays rules-off.
  * Every row gets the rule columns: restore writes a key missing from one row as NULL.
@@ -157,6 +172,7 @@ export function normalizeLegacyArchive({
     // Rows soft-deleted before `deletionReason` existed came from reconciliation; the DB CHECK needs a reason.
     if (row.deletedAt && !row.deletionReason) row.deletionReason = TRANSACTION_DELETION_REASON.reconciliation;
   }
+  mergeRemovedAccountCategories({ parsedByPath });
   moveVehicleAnchorsToValuations({ parsedByPath });
   if (formatVersion > LEGACY_TRACKER_TYPE_VERSION) return;
   if (formatVersion <= LEGACY_TRACKER_NAMING_VERSION) normalizeTrackerNaming({ parsedByPath });

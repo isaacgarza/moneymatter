@@ -159,7 +159,7 @@ test.describe('Goals navigation, dashboard widget, deep links and mobile', () =>
       name: 'Widget Current',
       currencyCode: CURRENCY,
       initialBalance: currentBalance,
-      category: ACCOUNT_CATEGORY.currentAccount,
+      category: ACCOUNT_CATEGORY.general,
       creditLimit: currentCreditLimit,
     });
     const cashId = await createAccountOfCategory({

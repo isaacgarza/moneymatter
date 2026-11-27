@@ -54,7 +54,7 @@ export const DEMO_CONFIG = {
       key: 'main_checking',
       name: 'Main Checking',
       currency: 'USD',
-      type: ACCOUNT_CATEGORIES.currentAccount,
+      type: ACCOUNT_CATEGORIES.general,
       initialBalance: 500000, // $5,000 in cents
       creditLimit: 0,
       logoDomain: 'chase.com',

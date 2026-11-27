@@ -53,11 +53,8 @@ export enum ACCOUNT_STATUSES {
 export enum ACCOUNT_CATEGORIES {
   general = 'general',
   cash = 'cash',
-  currentAccount = 'current-account',
   creditCard = 'credit-card',
   saving = 'saving',
-  bonus = 'bonus',
-  insurance = 'insurance',
   investment = 'investment',
   loan = 'loan',
   overdraft = 'overdraft',
@@ -69,10 +66,7 @@ export type AccountColorId = 'checking' | 'saving' | 'credit' | 'cash' | 'invest
 
 /** Icon ids; the frontend maps each to a component. */
 export type AccountIconId =
-  | 'landmark'
   | 'wallet'
-  | 'gift'
-  | 'shield'
   | 'piggy-bank'
   | 'credit-card'
   | 'banknote'
@@ -149,13 +143,6 @@ export const ACCOUNT_CATEGORY_REGISTRY = {
     goalEligible: true,
     budgetAttachable: true,
   }),
-  [ACCOUNT_CATEGORIES.currentAccount]: definition({
-    labelKey: 'common.accountCategories.currentAccount',
-    icon: 'landmark',
-    color: 'checking',
-    goalEligible: true,
-    budgetAttachable: true,
-  }),
   [ACCOUNT_CATEGORIES.creditCard]: definition({
     labelKey: 'common.accountCategories.creditCard',
     icon: 'credit-card',
@@ -169,16 +156,6 @@ export const ACCOUNT_CATEGORY_REGISTRY = {
     color: 'saving',
     goalEligible: true,
     budgetAttachable: true,
-  }),
-  [ACCOUNT_CATEGORIES.bonus]: definition({
-    labelKey: 'common.accountCategories.bonus',
-    icon: 'gift',
-    color: 'checking',
-  }),
-  [ACCOUNT_CATEGORIES.insurance]: definition({
-    labelKey: 'common.accountCategories.insurance',
-    icon: 'shield',
-    color: 'checking',
   }),
   [ACCOUNT_CATEGORIES.investment]: definition({
     labelKey: 'common.accountCategories.investment',

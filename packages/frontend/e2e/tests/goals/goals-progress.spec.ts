@@ -89,14 +89,14 @@ const CAR_SAVINGS: SeedAccount = {
 // One deposit 9 months ago only: history as old as Car savings, flat inside the pace window.
 const JOINT_CURRENT: SeedAccount = {
   name: 'Joint current',
-  category: ACCOUNT_CATEGORY.currentAccount,
+  category: ACCOUNT_CATEGORY.general,
   initialBalance: 4_000,
   creditLimit: 1_000,
   deposits: [1_000, 0, 0, 0, 0, 0, 0, 0, 0],
 };
 const OVERDRAWN_CURRENT: SeedAccount = {
   name: 'Overdrawn current',
-  category: ACCOUNT_CATEGORY.currentAccount,
+  category: ACCOUNT_CATEGORY.general,
   initialBalance: 1_000,
   creditLimit: 2_000,
   deposits: [500, 0, 0, 0, 0, 0, 0, 0, 0],

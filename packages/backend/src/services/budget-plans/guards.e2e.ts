@@ -38,7 +38,7 @@ describe('Budget plan auto-attach of new accounts', () => {
   it('ignores an account category outside the eligible set', async () => {
     const created = await helpers.createBudgetPlan({ payload: { autoAttachAccounts: true }, raw: true });
     await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ accountCategory: ACCOUNT_CATEGORIES.bonus }),
+      payload: helpers.buildAccountPayload({ accountCategory: ACCOUNT_CATEGORIES.investment }),
       raw: true,
     });
 

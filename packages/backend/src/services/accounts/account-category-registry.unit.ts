@@ -25,7 +25,6 @@ describe('account category derived lists', () => {
       new Set([
         ACCOUNT_CATEGORIES.general,
         ACCOUNT_CATEGORIES.cash,
-        ACCOUNT_CATEGORIES.currentAccount,
         ACCOUNT_CATEGORIES.saving,
         ACCOUNT_CATEGORIES.investment,
         ACCOUNT_CATEGORIES.crypto,
@@ -38,7 +37,6 @@ describe('account category derived lists', () => {
       new Set([
         ACCOUNT_CATEGORIES.general,
         ACCOUNT_CATEGORIES.cash,
-        ACCOUNT_CATEGORIES.currentAccount,
         ACCOUNT_CATEGORIES.saving,
         ACCOUNT_CATEGORIES.creditCard,
         ACCOUNT_CATEGORIES.overdraft,

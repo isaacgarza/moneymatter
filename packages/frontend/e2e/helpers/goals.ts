@@ -68,7 +68,6 @@ export async function listGoals({ request }: { request: APIRequestContext }): Pr
 export const ACCOUNT_CATEGORY = {
   general: 'general',
   cash: 'cash',
-  currentAccount: 'current-account',
   creditCard: 'credit-card',
   saving: 'saving',
   investment: 'investment',

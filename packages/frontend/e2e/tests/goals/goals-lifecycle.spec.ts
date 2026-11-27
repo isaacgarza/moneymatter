@@ -31,7 +31,7 @@ const CURRENT = {
   name: 'Daily Current',
   balance: 2_000,
   creditLimit: 500,
-  category: ACCOUNT_CATEGORY.currentAccount,
+  category: ACCOUNT_CATEGORY.general,
 };
 const GENERAL = {
   name: 'Misc General',
