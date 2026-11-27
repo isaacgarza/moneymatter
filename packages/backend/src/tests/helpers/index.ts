@@ -9,6 +9,7 @@ export * from './common';
 export { akahu, bankDataProviders, enablebanking, lunchflow, monobank, walutomat };
 export * from './account';
 export * from './account-links';
+export * from './account-valuations';
 export * from './refunds';
 export * from './transfers';
 export * from './stats';

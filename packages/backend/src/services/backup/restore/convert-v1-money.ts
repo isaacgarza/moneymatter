@@ -66,6 +66,18 @@ function resolveColumn({
 }
 
 /**
+ * Columns of the frozen list that no longer exist where they were. Restore moves their values
+ * (`normalize-legacy-archive`) before the conversion runs, so the cents are divided where they
+ * now sit.
+ */
+const RELOCATED_LEGACY_COLUMNS: Record<string, MoneyColumnSpec> = {
+  'Vehicles.valueAnchor': { table: 'AccountValuations', column: 'value' },
+};
+
+const relocateLegacyColumn = ({ table, column }: MoneyColumnSpec): MoneyColumnSpec =>
+  RELOCATED_LEGACY_COLUMNS[`${table}.${column}`] ?? { table, column };
+
+/**
  * One conversion rule per column and JSON field that held cents in format versions 1 to 3.
  *
  * Those formats were written before the money-storage migration and format 4 ships with it, so the
@@ -87,7 +99,7 @@ export function buildV1ConversionRules({
   tables?: readonly BackupTableDef[];
 } = {}): V1ConversionRules {
   return {
-    columns: columns.map(({ table, column }) => resolveColumn({ table, column, tables })),
+    columns: columns.map((spec) => resolveColumn({ ...relocateLegacyColumn(spec), tables })),
     jsonFields: jsonFields.map(({ table, column, shape, keys, path = [] }) => ({
       ...resolveColumn({ table, column, tables }),
       shape,

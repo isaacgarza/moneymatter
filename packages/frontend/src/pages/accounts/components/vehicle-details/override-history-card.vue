@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { deleteTransaction, loadTransactions } from '@/api/transactions';
+import { deleteAccountValuation, getAccountValuations } from '@/api/account-valuations';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -8,14 +8,11 @@ import { NotificationType, useNotificationCenter } from '@/components/notificati
 import { useFormatCurrency } from '@/composable';
 import { maskAmountText } from '@/js/helpers/formatters';
 import { captureException } from '@/lib/sentry';
-import { FILTER_OPERATION, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ArrowDownRightIcon, ArrowUpRightIcon, HistoryIcon, Trash2Icon } from '@lucide/vue';
+import { HistoryIcon, Trash2Icon } from '@lucide/vue';
 import { format, parseISO } from 'date-fns';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-const OVERRIDE_HISTORY_LIMIT = 100;
 
 const props = defineProps<{ accountId: string; currencyCode: string; readonly?: boolean }>();
 
@@ -24,33 +21,25 @@ const queryClient = useQueryClient();
 const { addNotification } = useNotificationCenter();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 
-const queryKey = computed(() => [...VUE_QUERY_CACHE_KEYS.vehicleOverrideHistory, props.accountId]);
+const queryKey = computed(() => [...VUE_QUERY_CACHE_KEYS.accountValuations, props.accountId]);
 
 const { data, isLoading } = useQuery({
   queryKey,
-  queryFn: () =>
-    loadTransactions({
-      accountIds: [props.accountId],
-      transferFilter: FILTER_OPERATION.only,
-      limit: OVERRIDE_HISTORY_LIMIT,
-      offset: 0,
-    }),
+  queryFn: () => getAccountValuations({ accountId: props.accountId }),
 });
 
-const overrides = computed(() =>
-  (data.value ?? []).filter((tx) => tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet),
-);
+const valuations = computed(() => data.value ?? []);
 
-const txToDelete = ref<string | null>(null);
+const idToDelete = ref<string | null>(null);
 
 const deleteMutation = useMutation({
-  mutationFn: (id: string) => deleteTransaction(id),
+  mutationFn: (id: string) => deleteAccountValuation({ id }),
 });
 
 const confirmDelete = async () => {
-  if (!txToDelete.value) return;
-  const id = txToDelete.value;
-  txToDelete.value = null;
+  if (!idToDelete.value) return;
+  const id = idToDelete.value;
+  idToDelete.value = null;
 
   try {
     await deleteMutation.mutateAsync(id);
@@ -59,7 +48,7 @@ const confirmDelete = async () => {
       type: NotificationType.success,
     });
     // Vehicle cache keys are prefixed with `transactionChange`, so this single
-    // predicate invalidation also covers vehicleOverrideHistory / vehicleDetail /
+    // predicate invalidation also covers accountValuations / vehicleDetail /
     // vehiclesList — no per-key invalidations needed.
     queryClient.invalidateQueries({
       predicate: (q) => (q.queryKey as string[]).includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange),
@@ -69,7 +58,7 @@ const confirmDelete = async () => {
       text: t('pages.vehicleDetails.overrideHistory.deleteError'),
       type: NotificationType.error,
     });
-    captureException({ error, context: { source: 'vehicleOverrideHistoryDelete', transactionId: id } });
+    captureException({ error, context: { source: 'accountValuationDelete', valuationId: id } });
   }
 };
 </script>
@@ -83,46 +72,23 @@ const confirmDelete = async () => {
 
     <div v-if="isLoading" class="bg-muted/30 h-16 animate-pulse rounded-lg"></div>
 
-    <p v-else-if="overrides.length === 0" class="text-muted-foreground py-2 text-sm">
+    <p v-else-if="valuations.length === 0" class="text-muted-foreground py-2 text-sm">
       {{ $t('pages.vehicleDetails.overrideHistory.empty') }}
     </p>
 
     <ul v-else class="divide-border grid divide-y">
       <li
-        v-for="tx in overrides"
-        :key="tx.id"
+        v-for="valuation in valuations"
+        :key="valuation.id"
         class="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
       >
-        <div class="flex min-w-0 items-center gap-3">
-          <span
-            class="bg-muted/40 flex size-8 shrink-0 items-center justify-center rounded-full"
-            :class="
-              tx.transactionType === TRANSACTION_TYPES.income ? 'text-app-income-color' : 'text-app-expense-color'
-            "
-          >
-            <component
-              :is="tx.transactionType === TRANSACTION_TYPES.income ? ArrowUpRightIcon : ArrowDownRightIcon"
-              class="size-4"
-            />
-          </span>
-          <div class="min-w-0">
-            <div class="text-foreground text-sm font-medium tabular-nums">
-              <span
-                :class="
-                  tx.transactionType === TRANSACTION_TYPES.income ? 'text-app-income-color' : 'text-app-expense-color'
-                "
-              >
-                {{
-                  maskAmountText({
-                    text: `${tx.transactionType === TRANSACTION_TYPES.income ? '+' : '−'} ${formatAmountByCurrencyCode({ amount: tx.amount, currencyCode })}`,
-                  })
-                }}
-              </span>
-            </div>
-            <div class="text-muted-foreground truncate text-xs">
-              {{ format(parseISO(String(tx.time)), 'MMM d, yyyy') }}
-              <span v-if="tx.note">· {{ tx.note }}</span>
-            </div>
+        <div class="min-w-0">
+          <div class="text-foreground text-sm font-medium tabular-nums">
+            {{ maskAmountText({ text: formatAmountByCurrencyCode({ amount: valuation.value, currencyCode }) }) }}
+          </div>
+          <div class="text-muted-foreground truncate text-xs">
+            {{ format(parseISO(valuation.date), 'MMM d, yyyy') }}
+            <span v-if="valuation.note">· {{ valuation.note }}</span>
           </div>
         </div>
 
@@ -131,7 +97,7 @@ const confirmDelete = async () => {
             variant="ghost-destructive"
             size="icon-sm"
             :disabled="deleteMutation.isPending.value"
-            @click="txToDelete = tx.id"
+            @click="idToDelete = valuation.id"
           >
             <Trash2Icon class="size-4" />
           </UiButton>
@@ -140,10 +106,10 @@ const confirmDelete = async () => {
     </ul>
 
     <ResponsiveAlertDialog
-      :open="txToDelete !== null"
+      :open="idToDelete !== null"
       :confirm-label="$t('pages.vehicleDetails.overrideHistory.deleteConfirm')"
       confirm-variant="destructive"
-      @update:open="(val) => (val ? null : (txToDelete = null))"
+      @update:open="(val) => (val ? null : (idToDelete = null))"
       @confirm="confirmDelete"
     >
       <template #title>{{ $t('pages.vehicleDetails.overrideHistory.deleteTitle') }}</template>

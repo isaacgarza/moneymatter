@@ -26,9 +26,11 @@ describe('buildV1ConversionRules', () => {
   it('resolves each entry to the backup file whose model owns the table', () => {
     const rules = rulesFromLists();
 
-    MONEY_COLUMNS.forEach(({ table }, index) => {
+    MONEY_COLUMNS.forEach(({ table, column }, index) => {
       const def = BACKUP_TABLES.find((candidate) => candidate.fileName === rules.columns[index]!.fileName);
-      expect(String(def!.model.getTableName())).toBe(table);
+      // The vehicle anchor moved to the valuation log; restore relocates its cents there.
+      const expectedTable = table === 'Vehicles' && column === 'valueAnchor' ? 'AccountValuations' : table;
+      expect(String(def!.model.getTableName())).toBe(expectedTable);
     });
     MONEY_JSON_FIELDS.forEach(({ table }, index) => {
       const def = BACKUP_TABLES.find((candidate) => candidate.fileName === rules.jsonFields[index]!.fileName);

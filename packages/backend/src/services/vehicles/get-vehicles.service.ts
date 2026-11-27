@@ -1,8 +1,8 @@
-import Accounts from '@models/accounts.model';
 import Vehicles from '@models/vehicles.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { getAccessibleAccountIdsForUser } from '@services/sharing/auth/get-accessible-account-ids.service';
 
+import { VEHICLE_RESPONSE_INCLUDE } from './helpers';
 import { refreshStaleVehicleValuesForUser } from './refresh-vehicle-value.service';
 
 interface GetVehiclesParams {
@@ -18,7 +18,7 @@ const getVehiclesImpl = async ({ userId }: GetVehiclesParams) => {
 
   return Vehicles.findAll({
     where: { accountId: accountIds },
-    include: [{ model: Accounts }],
+    include: VEHICLE_RESPONSE_INCLUDE,
     order: [['createdAt', 'DESC']],
   });
 };

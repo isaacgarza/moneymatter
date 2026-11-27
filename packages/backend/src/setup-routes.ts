@@ -11,6 +11,7 @@ import { API_PREFIX } from './config';
 import { auth, authPool } from './config/auth';
 import accountGroupsRoutes from './routes/account-groups';
 import accountLinksRoutes from './routes/account-links.route';
+import accountValuationsRoutes from './routes/account-valuations.route';
 import accountsRoutes from './routes/accounts.route';
 import adminRoutes from './routes/admin.route';
 import attachmentsRoutes from './routes/attachments.route';
@@ -205,6 +206,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/vehicles`, vehiclesRoutes);
   app.use(`${API_PREFIX}/loans`, loansRoutes);
   app.use(`${API_PREFIX}/account-links`, accountLinksRoutes);
+  app.use(`${API_PREFIX}/account-valuations`, accountValuationsRoutes);
   app.use(`${API_PREFIX}/share`, shareRoutes);
   app.use(`${API_PREFIX}/investments`, investmentsRoutes);
   app.use(`${API_PREFIX}/venture`, ventureRoutes);

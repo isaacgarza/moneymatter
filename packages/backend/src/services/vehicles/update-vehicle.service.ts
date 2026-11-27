@@ -4,7 +4,7 @@ import Accounts from '@models/accounts.model';
 import Vehicles from '@models/vehicles.model';
 import { withTransaction } from '@services/common/with-transaction';
 
-import { findVehicleOrThrow } from './helpers';
+import { findVehicleOrThrow, VEHICLE_RESPONSE_INCLUDE } from './helpers';
 import { refreshVehicleValueIfStale } from './refresh-vehicle-value.service';
 
 interface UpdateVehicleParams {
@@ -62,7 +62,7 @@ const updateVehicleImpl = async (params: UpdateVehicleParams) => {
   }
 
   return Vehicles.findByPk(vehicleId, {
-    include: [{ model: Accounts }],
+    include: VEHICLE_RESPONSE_INCLUDE,
   });
 };
 

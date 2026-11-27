@@ -2,10 +2,7 @@
   <div ref="headerRef">
     <DemoBanner />
     <TrialBanner />
-    <div
-      ref="headerBarRef"
-      class="shadow-header border-border @container/header-bar flex items-center justify-between border-b px-4 py-2 sm:px-6"
-    >
+    <div class="shadow-header border-border flex items-center justify-between border-b px-4 py-2 sm:px-6">
       <div class="flex items-center gap-4">
         <template v-if="isMobileView">
           <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
@@ -28,95 +25,9 @@
             </Sheet.SheetContent>
           </Sheet.Sheet>
         </template>
-
-        <div class="flex items-center gap-px">
-          <ManageTransactionDialog v-model:open="isCreateTransactionDialogOpen" :prefill="createTransactionPrefill">
-            <Button variant="default" size="sm" class="rounded-r-none">
-              <PlusIcon class="size-4" />
-              {{ isMobileView ? $t('header.add') : $t('header.newTransaction') }}
-            </Button>
-          </ManageTransactionDialog>
-
-          <Popover.Popover v-model:open="isAddMenuOpen">
-            <Popover.PopoverTrigger as-child>
-              <Button variant="default" size="sm" class="rounded-l-none px-2" :aria-label="$t('header.moreActions')">
-                <ChevronDownIcon class="size-4" />
-              </Button>
-            </Popover.PopoverTrigger>
-            <Popover.PopoverContent class="grid w-72 gap-0.5 p-1.5" align="start">
-              <RouterLink :to="{ name: ROUTES_NAMES.settingsDataManagement }" @click="isAddMenuOpen = false">
-                <Button variant="ghost" class="h-auto w-full justify-start gap-3 p-2 text-left whitespace-normal">
-                  <span
-                    class="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-md"
-                  >
-                    <ImportIcon class="size-4" />
-                  </span>
-                  <span class="grid">
-                    <span class="text-sm font-semibold">{{ $t('header.importData') }}</span>
-                    <span class="text-muted-foreground text-xs font-normal">{{ $t('header.importDataHint') }}</span>
-                  </span>
-                </Button>
-              </RouterLink>
-
-              <Button
-                v-if="!userStore.isDemo"
-                variant="ghost"
-                class="h-auto w-full justify-start gap-3 p-2 text-left whitespace-normal"
-                @click="openAttachInvoice"
-              >
-                <span
-                  class="bg-primary/10 text-primary-text flex size-9 shrink-0 items-center justify-center rounded-md"
-                >
-                  <ReceiptTextIcon class="size-4" />
-                </span>
-                <span class="grid">
-                  <span class="text-sm font-semibold">{{ $t('header.attachInvoice') }}</span>
-                  <span class="text-muted-foreground text-xs font-normal">{{ $t('header.attachInvoiceHint') }}</span>
-                </span>
-              </Button>
-            </Popover.PopoverContent>
-          </Popover.Popover>
-        </div>
-
-        <AttachInvoiceDialog v-if="isAttachInvoiceMounted" v-model:open="isAttachInvoiceOpen" />
       </div>
 
       <div class="ml-auto flex items-center gap-2">
-        <DesktopOnlyTooltip v-if="!isMobileView" :content="$t('header.feedback')" :disabled="!isHeaderBarCompact">
-          <span class="inline-flex">
-            <FeedbackDialog>
-              <Button
-                variant="secondary"
-                :size="isHeaderBarCompact ? 'icon' : 'sm'"
-                :class="['flex items-center gap-1.5', { 'feedback-pulse': isFeedbackPulsing }]"
-                :aria-label="$t('header.feedback')"
-                @mouseenter="onFeedbackEnter"
-                @click="onFeedbackClick"
-              >
-                <FeedbackIcon class="text-primary-text size-4" />
-                <span class="hidden @[890px]/header-bar:inline">{{ $t('header.feedback') }}</span>
-              </Button>
-            </FeedbackDialog>
-          </span>
-        </DesktopOnlyTooltip>
-
-        <DesktopOnlyTooltip
-          v-if="isSupportButtonVisible && !isMobileView"
-          :content="$t('header.support')"
-          :disabled="!isHeaderBarCompact"
-        >
-          <Button
-            variant="secondary"
-            :size="isHeaderBarCompact ? 'icon' : 'sm'"
-            class="flex items-center gap-1.5"
-            :aria-label="$t('header.support')"
-            @click="openSupport"
-          >
-            <HeartIcon class="text-heart size-4 fill-current" />
-            <span class="hidden @[890px]/header-bar:inline">{{ $t('header.support') }}</span>
-          </Button>
-        </DesktopOnlyTooltip>
-
         <template v-if="accountsNeedingRelink.length > 0">
           <AccountsRelinkWarning />
         </template>
@@ -164,14 +75,6 @@
 
         <NotificationsPopover />
 
-        <RouterLink :to="{ name: ROUTES_NAMES.settings }">
-          <DesktopOnlyTooltip :content="$t('header.settings')">
-            <Button variant="secondary" size="icon" :aria-label="$t('header.settings')">
-              <SettingsIcon class="size-4" />
-            </Button>
-          </DesktopOnlyTooltip>
-        </RouterLink>
-
         <UserMenu />
       </div>
     </div>
@@ -181,66 +84,35 @@
 <script setup lang="ts">
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
 import TrialBanner from '@/components/billing/trial-banner.vue';
-import FeedbackIcon from '@/components/common/icons/feedback-icon.vue';
-import FeedbackDialog from '@/components/dialogs/feedback-dialog.vue';
 import DemoBanner from '@/components/demo/demo-banner.vue';
-import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import * as Sheet from '@/components/lib/ui/sheet';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import NotificationsPopover from '@/components/notifications-popover/index.vue';
 import Sidebar from '@/components/sidebar/index.vue';
 import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
 import UserMenu from '@/components/user-menu.vue';
-import {
-  createTransactionPrefill,
-  isCreateTransactionDialogOpen,
-} from '@/composable/global-state/create-transaction-dialog';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { useCategorizationStatus } from '@/composable/use-categorization-status';
 import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
 import { useDateLocale } from '@/composable/use-date-locale';
-import { useFeedbackAttention } from '@/composable/use-feedback-attention';
 import { useIdleEnabled } from '@/composable/use-idle-enabled';
-import { useSupportButton } from '@/composable/use-support-button';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ROUTES_NAMES } from '@/routes/constants';
-import { useAccountsStore, useUserStore } from '@/stores';
+import { useAccountsStore } from '@/stores';
 import {
   AlertTriangleIcon,
-  ChevronDownIcon,
   CloudAlertIcon,
   CloudCheckIcon,
-  HeartIcon,
-  ImportIcon,
   MenuIcon,
-  PlusIcon,
-  ReceiptTextIcon,
   RefreshCcw,
-  SettingsIcon,
   SparklesIcon,
 } from '@lucide/vue';
-import { useResizeObserver } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
-import { computed, defineAsyncComponent, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { RouterLink, useRoute } from 'vue-router';
-
-const AttachInvoiceDialog = defineAsyncComponent(() => import('@/components/dialogs/attach-invoice/index.vue'));
-
-const userStore = useUserStore();
-const isAddMenuOpen = ref(false);
-const isAttachInvoiceMounted = ref(false);
-const isAttachInvoiceOpen = ref(false);
-
-const openAttachInvoice = () => {
-  isAddMenuOpen.value = false;
-  isAttachInvoiceMounted.value = true;
-  isAttachInvoiceOpen.value = true;
-};
+import { useRoute } from 'vue-router';
 
 const accountsStore = useAccountsStore();
 const { accountsNeedingRelink, isAccountsFetched } = storeToRefs(accountsStore);
@@ -254,19 +126,6 @@ const route = useRoute();
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 const showConfirmDialog = ref(false);
 const isPopoverOpen = ref(false);
-
-const { isPulsing: isFeedbackPulsing, onEnter: onFeedbackEnter, onClick: onFeedbackClick } = useFeedbackAttention();
-
-// Mirror the `@[890px]/header-bar` container query that toggles the feedback
-// button's label — tooltip is only useful in the icon-only state.
-const headerBarRef = ref<HTMLElement | null>(null);
-const isHeaderBarCompact = ref(true);
-useResizeObserver(headerBarRef, ([entry]) => {
-  if (!entry) return;
-  isHeaderBarCompact.value = entry.contentRect.width < 890;
-});
-
-const { isSupportButtonVisible, openSupport } = useSupportButton();
 
 const syncStatus = useSyncStatus();
 

@@ -7,8 +7,10 @@ import {
   ChartColumnIcon,
   ChevronRightIcon,
   CreditCardIcon,
+  HandCoinsIcon,
   LayersIcon,
   LayoutDashboardIcon,
+  TrendingUpIcon,
 } from '@lucide/vue';
 import { useSlidingIndicator } from '@/composable/use-sliding-indicator';
 import { computed, ref, watch } from 'vue';
@@ -34,7 +36,8 @@ const navIconBase = 'size-4 shrink-0';
 const navIconActive = 'text-primary-text';
 
 const { isTransactionsOpen, isPlannedOpen } = useSidebarNavCollapse();
-const { isAccountsRoute, isTransactionsRoute, isPlannedRoute, isChildActive } = useSidebarNavRoutes();
+const { isAccountsRoute, isInvestmentsRoute, isLoansRoute, isTransactionsRoute, isPlannedRoute, isChildActive } =
+  useSidebarNavRoutes();
 
 const route = useRoute();
 // An open section hands the highlight to its active child, but that child can be hidden by user settings.
@@ -88,25 +91,43 @@ watch(
     </ui-button>
   </router-link>
 
-  <template v-if="bottomNav">
-    <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.accounts }">
-      <ui-button variant="ghost" as="span" :class="[navItemBase, navItemState({ active: isActive })]" size="default">
-        <LayersIcon :class="[navIconBase, isActive && navIconActive]" />
-        <span class="max-sm:hidden"> {{ $t('navigation.accounts') }} </span>
-      </ui-button>
-    </router-link>
-  </template>
-  <router-link v-else :to="{ name: ROUTES_NAMES.accounts }">
+  <router-link :to="{ name: ROUTES_NAMES.accounts }">
     <ui-button
       variant="ghost"
       as="span"
-      :class="[navItemBase, 'justify-start', navItemState({ active: isAccountsRoute })]"
+      :class="[navItemBase, !bottomNav && 'justify-start', navItemState({ active: isAccountsRoute })]"
       size="default"
     >
       <LayersIcon :class="[navIconBase, isAccountsRoute && navIconActive]" />
-      <span> {{ $t('navigation.accounts') }} </span>
+      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.accounts') }} </span>
     </ui-button>
   </router-link>
+
+  <template v-if="!bottomNav">
+    <router-link :to="{ name: ROUTES_NAMES.investments }">
+      <ui-button
+        variant="ghost"
+        as="span"
+        :class="[navItemBase, 'justify-start', navItemState({ active: isInvestmentsRoute })]"
+        size="default"
+      >
+        <TrendingUpIcon :class="[navIconBase, isInvestmentsRoute && navIconActive]" />
+        <span>{{ $t('sidebar.accountsView.investing') }}</span>
+      </ui-button>
+    </router-link>
+
+    <router-link :to="{ name: ROUTES_NAMES.loans }">
+      <ui-button
+        variant="ghost"
+        as="span"
+        :class="[navItemBase, 'justify-start', navItemState({ active: isLoansRoute })]"
+        size="default"
+      >
+        <HandCoinsIcon :class="[navIconBase, isLoansRoute && navIconActive]" />
+        <span>{{ $t('sidebar.accountsView.loans') }}</span>
+      </ui-button>
+    </router-link>
+  </template>
 
   <template v-if="bottomNav">
     <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">

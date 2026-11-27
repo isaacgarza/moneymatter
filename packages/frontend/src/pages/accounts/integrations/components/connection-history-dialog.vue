@@ -1,6 +1,8 @@
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogContent class="sm:max-w-md">
+    <!-- The date field would take the focus on open, and iOS Safari shows its date picker for a focused date input. -->
+    <!-- The date field would take the focus on open, and iOS Safari shows its date picker for a focused date input. -->
+    <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
       <DialogHeader>
         <DialogTitle>{{ $t('pages.integrations.details.history.title') }}</DialogTitle>
         <DialogDescription>{{ $t('pages.integrations.details.history.description') }}</DialogDescription>
@@ -24,11 +26,11 @@
           {{ $t('pages.integrations.details.history.lastError', { message: history.lastError }) }}
         </p>
 
-        <InputField
-          v-model="startDate"
-          type="date"
+        <DateField
+          v-model="startDateValue"
+          mode="date"
           :label="$t('pages.integrations.details.history.startLabel')"
-          :max="today"
+          :calendar-options="{ maxDate: today }"
           :disabled="isSaving"
         />
 
@@ -50,7 +52,7 @@
 <script lang="ts" setup>
 import { updateConnectionDetails } from '@/api/bank-data-providers';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import InputField from '@/components/fields/input-field.vue';
+import DateField from '@/components/fields/date-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import {
   Dialog,
@@ -64,6 +66,7 @@ import { StatusBadge } from '@/components/lib/ui/status-badge';
 import { useNotificationCenter } from '@/components/notification-center';
 import { BANK_HISTORY_STATE, type BankHistoryStatus } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import { format, parseISO } from 'date-fns';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -89,8 +92,18 @@ const isOpen = computed({
 });
 
 // The backend refuses a date in the future, so the picker stops there.
-const today = new Date().toISOString().slice(0, 10);
+const today = new Date();
+const DATE_PATTERN = 'yyyy-MM-dd';
 const startDate = ref(props.history?.startDate ?? '');
+
+// The calendar works in Dates; the API takes and returns a date-only string. parseISO reads that
+// string as local midnight, so no timezone shifts it a day.
+const startDateValue = computed({
+  get: () => (startDate.value ? parseISO(startDate.value) : undefined),
+  set: (value?: Date) => {
+    startDate.value = value ? format(value, DATE_PATTERN) : '';
+  },
+});
 
 // Start from the saved date each time the dialog opens, and follow it when a refetch changes it.
 watch(

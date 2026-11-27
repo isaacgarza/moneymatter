@@ -53,6 +53,10 @@
           : 'h-[calc(100dvh-var(--header-height)-32px)] min-h-0',
       ]"
     >
+      <div class="flex shrink-0 items-center">
+        <CreateTransactionActions />
+      </div>
+
       <!-- Mobile compact layout: filters behind a dialog button, user toggles
            between the compact list and the full table. -->
       <template v-if="showMobileLayout">
@@ -388,6 +392,7 @@
 
 <script lang="ts" setup>
 import PageWrapper from '@/components/common/page-wrapper.vue';
+import CreateTransactionActions from '@/components/create-transaction-actions.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Switch } from '@/components/lib/ui/switch';
 import { Card } from '@/components/lib/ui/card';

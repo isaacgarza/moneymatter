@@ -131,3 +131,22 @@ jobs:
           tags: ghcr.io/${{ github.repository_owner }}/budget-tracker-${{ matrix.name }}:${{ env.TAG }}
           build-args: |
             VITE_APP_COMMIT_HASH=${{ github.sha }}
+
+  # Tells the homelab repository a build is published, so its bump PR opens now instead of at
+  # its next hourly check (GitHub runs scheduled workflows late and sometimes not at all).
+  # HOMELAB_DISPATCH_TOKEN needs Contents write on the homelab repository, which is what
+  # repository_dispatch requires. Without it the hourly check is still the fallback.
+  notify-homelab:
+    needs: build
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the homelab bump
+        env:
+          GH_TOKEN: ${{ secrets.HOMELAB_DISPATCH_TOKEN }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::notice::HOMELAB_DISPATCH_TOKEN is not set, so the homelab bump waits for its hourly check"
+            exit 0
+          fi
+          gh api "repos/${GITHUB_REPOSITORY_OWNER}/homelab/dispatches" -f event_type=moneymatter-fork-built

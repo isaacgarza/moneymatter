@@ -2,7 +2,7 @@ import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, DEPRECIATION_PRESET, VEHICLE_CLASS }
 import { getCurrencyDecimals } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
-import Accounts, { createAccount as createAccountInDb } from '@models/accounts.model';
+import { createAccount as createAccountInDb } from '@models/accounts.model';
 import Vehicles from '@models/vehicles.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
@@ -11,6 +11,7 @@ import { roundPositiveAmount } from '@services/transactions/round-positive-amoun
 import { parseISO } from 'date-fns';
 
 import { computeVehicleValue } from './compute-vehicle-value';
+import { VEHICLE_RESPONSE_INCLUDE } from './helpers';
 
 interface CreateVehicleParams {
   userId: number;
@@ -123,6 +124,6 @@ export const createVehicle = withTransaction(createVehicleImpl);
 
 const loadVehicleWithAccount = async ({ vehicleId }: { vehicleId: string }) => {
   return Vehicles.findByPk(vehicleId, {
-    include: [{ model: Accounts }],
+    include: VEHICLE_RESPONSE_INCLUDE,
   });
 };

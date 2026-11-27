@@ -2,14 +2,16 @@ import { roundToCurrency } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
+import AccountValuations from '@models/account-valuations.model';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import Vehicles from '@models/vehicles.model';
+import { latestValuationOnOrBefore } from '@services/account-valuations/latest-valuation';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import { getAccessibleAccountIdsForUser } from '@services/sharing/auth/get-accessible-account-ids.service';
-import { parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 import { computeVehicleValue } from './compute-vehicle-value';
 
@@ -76,10 +78,13 @@ const refreshVehicleValueIfStaleImpl = async ({
     };
   }
 
-  const hasAnchor = vehicle.valueAnchor !== null && vehicle.valueAnchorDate !== null;
-  const anchorValue = hasAnchor ? vehicle.valueAnchor! : vehicle.purchasePrice;
-  const anchorDateString = hasAnchor ? vehicle.valueAnchorDate! : vehicle.purchaseDate;
-  const anchorDate = parseISO(anchorDateString);
+  // Depreciation starts from the latest valuation that already holds today; with none, the purchase.
+  const valuation = latestValuationOnOrBefore({
+    valuations: await AccountValuations.findAll({ where: { accountId: vehicle.accountId } }),
+    asOf: format(now, 'yyyy-MM-dd'),
+  });
+  const anchorValue = valuation ? valuation.value : vehicle.purchasePrice;
+  const anchorDate = parseISO(valuation ? valuation.date : vehicle.purchaseDate);
 
   const newValue = await roundToCurrency({
     money: computeVehicleValue({

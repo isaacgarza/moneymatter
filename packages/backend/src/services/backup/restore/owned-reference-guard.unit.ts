@@ -14,6 +14,7 @@ import { buildGuardedReferenceMap } from './owned-reference-guard';
 const EXPECTED_GUARDED_COLUMNS: Record<string, string[]> = {
   'account-groupings': ['accountId', 'groupId'],
   'account-links': ['fromAccountId', 'toAccountId'],
+  'account-valuations': ['accountId'],
   'account-groups': ['bankDataProviderConnectionId', 'parentGroupId'],
   accounts: ['bankDataProviderConnectionId'],
   balances: ['accountId'],

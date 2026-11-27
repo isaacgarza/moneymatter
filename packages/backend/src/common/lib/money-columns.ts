@@ -21,6 +21,7 @@ export interface MoneyColumnSpec {
 }
 
 export const MONEY_COLUMNS: readonly MoneyColumnSpec[] = [
+  { table: 'AccountValuations', column: 'value' },
   { table: 'Accounts', column: 'initialBalance' },
   { table: 'Accounts', column: 'refInitialBalance' },
   { table: 'Accounts', column: 'currentBalance' },
@@ -62,7 +63,6 @@ export const MONEY_COLUMNS: readonly MoneyColumnSpec[] = [
   { table: 'Transactions', column: 'originalAmount' },
   { table: 'Transactions', column: 'paymentAmount' },
   { table: 'Vehicles', column: 'purchasePrice' },
-  { table: 'Vehicles', column: 'valueAnchor' },
 ];
 
 export interface MoneyJsonFieldSpec {

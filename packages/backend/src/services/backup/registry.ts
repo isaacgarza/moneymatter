@@ -279,6 +279,13 @@ const TABLE_DEFS = [
     restoreMode: 'insert',
   },
   {
+    fileName: 'account-valuations',
+    model: models.AccountValuations,
+    tier: 3,
+    scope: { strategy: 'userColumn', column: 'userId' },
+    restoreMode: 'insert',
+  },
+  {
     fileName: 'transaction-groups',
     model: models.TransactionGroups,
     tier: 3,

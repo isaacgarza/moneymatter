@@ -90,7 +90,9 @@ import { type FeedbackType, MAX_FEEDBACK_MESSAGE_LENGTH, buildFeedbackSubmission
 const { t } = useI18n();
 const { addSuccessNotification } = useNotificationCenter();
 
-const isOpen = ref(false);
+// Owned by the caller when it passes `v-model:open` (the user menu opens it from a menu item),
+// and by the dialog itself when a trigger is slotted.
+const isOpen = defineModel<boolean>('open', { default: false });
 const message = ref('');
 const errorMessage = ref('');
 

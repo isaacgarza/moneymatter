@@ -1,4 +1,5 @@
 import { TRANSACTION_DELETION_REASON } from '@bt/shared/types';
+import { randomUUID } from 'crypto';
 import isPlainObject from 'lodash/isPlainObject';
 
 type Row = Record<string, unknown>;
@@ -85,6 +86,58 @@ function normalizeCategoryTrackers({ parsedByPath }: { parsedByPath: Map<string,
 }
 
 /**
+ * A vehicle's manual value used to be `vehicles.valueAnchor` (+ date) plus a `transfer_out_wallet`
+ * adjustment transaction per override. It is now the latest entry of the account's valuation log,
+ * and no transaction exists on a vehicle account. The amount is copied as stored: an archive
+ * before decimal money still holds cents here, and the cents conversion reaches the valuation
+ * column through the frozen list's relocation. Only the latest value survives; earlier overrides
+ * of an old archive were never stored as values.
+ */
+function moveVehicleAnchorsToValuations({ parsedByPath }: { parsedByPath: Map<string, unknown> }): void {
+  const vehicleAccountIds = new Set<unknown>();
+  const valuations: Row[] = [];
+  const now = new Date().toISOString();
+
+  for (const vehicle of rowsAt({ parsedByPath, name: 'vehicles' })) {
+    vehicleAccountIds.add(vehicle.accountId);
+    const { valueAnchor, valueAnchorDate } = vehicle;
+    delete vehicle.valueAnchor;
+    delete vehicle.valueAnchorDate;
+    if (valueAnchor === undefined || valueAnchor === null || typeof valueAnchorDate !== 'string') continue;
+    valuations.push({
+      id: randomUUID(),
+      userId: vehicle.userId,
+      accountId: vehicle.accountId,
+      date: valueAnchorDate,
+      value: valueAnchor,
+      note: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  if (valuations.length) {
+    const existing = parsedByPath.get('data/account-valuations.json');
+    parsedByPath.set('data/account-valuations.json', [...(Array.isArray(existing) ? existing : []), ...valuations]);
+  }
+
+  const transactions = parsedByPath.get('data/transactions.json');
+  if (!Array.isArray(transactions) || !vehicleAccountIds.size) return;
+  parsedByPath.set(
+    'data/transactions.json',
+    transactions.filter((row) => {
+      const tx = asObject(row);
+      const isOverride =
+        tx !== null &&
+        tx.transferNature === 'transfer_out_wallet' &&
+        asObject(tx.externalData)?.balanceAdjustment === true &&
+        vehicleAccountIds.has(tx.accountId);
+      return !isOverride;
+    }),
+  );
+}
+
+/**
  * Rewrite an older archive's tracker file names, row keys and embedded stored values
  * to the current shapes, and drop files of tables that no longer exist, in place.
  * Runs after checksum verification (which uses the original paths) and before any
@@ -104,6 +157,7 @@ export function normalizeLegacyArchive({
     // Rows soft-deleted before `deletionReason` existed came from reconciliation; the DB CHECK needs a reason.
     if (row.deletedAt && !row.deletionReason) row.deletionReason = TRANSACTION_DELETION_REASON.reconciliation;
   }
+  moveVehicleAnchorsToValuations({ parsedByPath });
   if (formatVersion > LEGACY_TRACKER_TYPE_VERSION) return;
   if (formatVersion <= LEGACY_TRACKER_NAMING_VERSION) normalizeTrackerNaming({ parsedByPath });
   normalizeCategoryTrackers({ parsedByPath });
