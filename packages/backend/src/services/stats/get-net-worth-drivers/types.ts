@@ -40,7 +40,7 @@ export interface NetWorthDriversPortfolioSliceMinor {
 }
 
 /** Per-bucket result, all money in base-currency minor units. */
-export interface NetWorthDriversBucketMinor {
+interface NetWorthDriversBucketMinor {
   periodStart: string;
   periodEnd: string;
   savings: {

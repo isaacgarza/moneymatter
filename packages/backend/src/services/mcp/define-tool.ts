@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { assertBaseCurrencyUnlocked, getUserId, jsonContent, requireFeature, requireScope } from './tools/helpers';
 
 export type ToolAccess = 'read' | 'write' | 'delete';
-export type ToolExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+type ToolExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
 
 export interface ToolDef<Shape extends z.ZodRawShape = z.ZodRawShape> {
   name: string;

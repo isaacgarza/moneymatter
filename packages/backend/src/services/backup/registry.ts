@@ -51,7 +51,7 @@ export type BackupDumpScope =
  * - `zodSettings`: upsert through `ZodSettingsSchema.parse`, never raw JSONB.
  * - `skip`: kept in the file, not restored (counterpart users are missing).
  */
-export type BackupRestoreMode = 'insert' | 'updateUser' | 'zodSettings' | 'skip';
+type BackupRestoreMode = 'insert' | 'updateUser' | 'zodSettings' | 'skip';
 
 export interface BackupTableDef<Name extends string = BackupFileName> {
   fileName: Name;

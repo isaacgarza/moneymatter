@@ -30,7 +30,7 @@ export interface GoalPeriodAssigned {
   assigned: number;
 }
 
-export interface GoalFundingPlanRow {
+interface GoalFundingPlanRow {
   periodStart: string;
   amount: number;
   leftAfter: number;
