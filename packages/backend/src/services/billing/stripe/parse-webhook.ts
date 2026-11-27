@@ -19,7 +19,7 @@ const SUBSCRIPTION_EVENT_TYPES = [
   'customer.subscription.deleted',
 ] as const;
 
-export type SubscriptionEventType = (typeof SUBSCRIPTION_EVENT_TYPES)[number];
+type SubscriptionEventType = (typeof SUBSCRIPTION_EVENT_TYPES)[number];
 
 type StripeSubscriptionEvent = Stripe.Event & { type: SubscriptionEventType };
 

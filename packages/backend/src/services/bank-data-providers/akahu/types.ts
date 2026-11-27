@@ -25,9 +25,9 @@ export interface AkahuMetadata extends AuthTrackingMetadata {
   accountCount?: number;
 }
 
-export type AkahuAccountStatus = 'ACTIVE' | 'INACTIVE';
+type AkahuAccountStatus = 'ACTIVE' | 'INACTIVE';
 
-export type AkahuAccountType =
+type AkahuAccountType =
   | 'CHECKING'
   | 'SAVINGS'
   | 'CREDITCARD'
@@ -40,9 +40,9 @@ export type AkahuAccountType =
   | 'REWARDS'
   | 'WALLET';
 
-export type AkahuAccountAttribute = 'TRANSACTIONS' | 'TRANSFER_TO' | 'TRANSFER_FROM' | 'PAYMENT_TO' | 'PAYMENT_FROM';
+type AkahuAccountAttribute = 'TRANSACTIONS' | 'TRANSFER_TO' | 'TRANSFER_FROM' | 'PAYMENT_TO' | 'PAYMENT_FROM';
 
-export interface AkahuApiBalance {
+interface AkahuApiBalance {
   available: Decimal | null;
   current: Decimal | null;
   currency: string;
@@ -50,7 +50,7 @@ export interface AkahuApiBalance {
   overdrawn?: boolean;
 }
 
-export interface AkahuApiConnection {
+interface AkahuApiConnection {
   _id: string;
   name: string;
   logo?: string | null;
@@ -82,19 +82,19 @@ export interface AkahuApiAccountResponse {
   item: AkahuApiAccount;
 }
 
-export interface AkahuApiMerchant {
+interface AkahuApiMerchant {
   _id?: string;
   name: string;
   website?: string | null;
 }
 
-export interface AkahuApiCategory {
+interface AkahuApiCategory {
   _id?: string;
   name: string;
   groups?: Record<string, { _id?: string; name?: string }>;
 }
 
-export interface AkahuApiTransactionMeta {
+interface AkahuApiTransactionMeta {
   particulars?: string | null;
   code?: string | null;
   reference?: string | null;
