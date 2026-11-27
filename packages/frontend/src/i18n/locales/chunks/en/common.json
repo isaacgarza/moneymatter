@@ -97,13 +97,11 @@
       "unlinkFailed": "Could not remove the link."
     },
     "accountCategories": {
-      "general": "General",
+      "checking": "Checking",
+      "general": "Uncategorized",
       "cash": "Cash",
-      "currentAccount": "Current account",
       "creditCard": "Credit card",
       "saving": "Saving account",
-      "bonus": "Bonus",
-      "insurance": "Insurance",
       "investment": "Investment",
       "loan": "Loan",
       "mortgage": "Mortgage",

@@ -97,13 +97,11 @@
       "unlinkFailed": "Не вдалося видалити зв'язок."
     },
     "accountCategories": {
-      "general": "Загальний",
+      "checking": "Поточний рахунок",
+      "general": "Без категорії",
       "cash": "Готівка",
-      "currentAccount": "Поточний рахунок",
       "creditCard": "Кредитна картка",
       "saving": "Ощадний рахунок",
-      "bonus": "Бонусний",
-      "insurance": "Страховий",
       "investment": "Інвестиційний",
       "loan": "Кредит",
       "mortgage": "Іпотека",

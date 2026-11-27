@@ -54,7 +54,7 @@ const defaultCurrency = computed(
 
 const queryCategory = route.query.category as ACCOUNT_CATEGORIES | undefined;
 const defaultAccountCategory =
-  queryCategory && !isDedicatedFlowAccountCategory(queryCategory) ? queryCategory : ACCOUNT_CATEGORIES.general;
+  queryCategory && !isDedicatedFlowAccountCategory(queryCategory) ? queryCategory : ACCOUNT_CATEGORIES.checking;
 
 const form = reactive<{
   name: string;

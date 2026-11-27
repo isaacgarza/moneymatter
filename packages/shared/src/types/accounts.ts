@@ -51,13 +51,12 @@ export enum ACCOUNT_STATUSES {
 }
 
 export enum ACCOUNT_CATEGORIES {
+  checking = 'checking',
+  /** The fallback for an account nobody has classified (synced, imported); shown as "Uncategorized". */
   general = 'general',
   cash = 'cash',
-  currentAccount = 'current-account',
   creditCard = 'credit-card',
   saving = 'saving',
-  bonus = 'bonus',
-  insurance = 'insurance',
   investment = 'investment',
   loan = 'loan',
   overdraft = 'overdraft',
@@ -71,8 +70,6 @@ export type AccountColorId = 'checking' | 'saving' | 'credit' | 'cash' | 'invest
 export type AccountIconId =
   | 'landmark'
   | 'wallet'
-  | 'gift'
-  | 'shield'
   | 'piggy-bank'
   | 'credit-card'
   | 'banknote'
@@ -135,6 +132,13 @@ const definition = <const T extends Pick<AccountCategoryDefinition, 'labelKey' |
  * elsewhere are derived from it; add or change a category here, not at its call sites.
  */
 export const ACCOUNT_CATEGORY_REGISTRY = {
+  [ACCOUNT_CATEGORIES.checking]: definition({
+    labelKey: 'common.accountCategories.checking',
+    icon: 'landmark',
+    color: 'checking',
+    goalEligible: true,
+    budgetAttachable: true,
+  }),
   [ACCOUNT_CATEGORIES.general]: definition({
     labelKey: 'common.accountCategories.general',
     icon: 'wallet',
@@ -146,13 +150,6 @@ export const ACCOUNT_CATEGORY_REGISTRY = {
     labelKey: 'common.accountCategories.cash',
     icon: 'banknote',
     color: 'cash',
-    goalEligible: true,
-    budgetAttachable: true,
-  }),
-  [ACCOUNT_CATEGORIES.currentAccount]: definition({
-    labelKey: 'common.accountCategories.currentAccount',
-    icon: 'landmark',
-    color: 'checking',
     goalEligible: true,
     budgetAttachable: true,
   }),
@@ -169,16 +166,6 @@ export const ACCOUNT_CATEGORY_REGISTRY = {
     color: 'saving',
     goalEligible: true,
     budgetAttachable: true,
-  }),
-  [ACCOUNT_CATEGORIES.bonus]: definition({
-    labelKey: 'common.accountCategories.bonus',
-    icon: 'gift',
-    color: 'checking',
-  }),
-  [ACCOUNT_CATEGORIES.insurance]: definition({
-    labelKey: 'common.accountCategories.insurance',
-    icon: 'shield',
-    color: 'checking',
   }),
   [ACCOUNT_CATEGORIES.investment]: definition({
     labelKey: 'common.accountCategories.investment',

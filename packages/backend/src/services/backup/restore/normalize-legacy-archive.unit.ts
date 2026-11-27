@@ -33,6 +33,21 @@ describe('normalizeLegacyArchive', () => {
     expect(transactions.map((row) => row.deletionReason)).toEqual(['reconciliation', 'trash', null]);
   });
 
+  it('restores accounts of removed categories as their replacement and keeps every other category', () => {
+    const accounts = [
+      { id: 1, accountCategory: 'current-account' },
+      { id: 2, accountCategory: 'bonus' },
+      { id: 3, accountCategory: 'insurance' },
+      { id: 4, accountCategory: 'cash' },
+      { id: 5, accountCategory: 'saving' },
+    ];
+    const parsedByPath = new Map<string, unknown>([['data/accounts.json', accounts]]);
+
+    normalizeLegacyArchive({ formatVersion: 99, parsedByPath });
+
+    expect(accounts.map((row) => row.accountCategory)).toEqual(['checking', 'general', 'general', 'cash', 'saving']);
+  });
+
   describe('vehicle anchors', () => {
     const vehicle = (patch: Record<string, unknown> = {}) => ({
       id: 'v1',

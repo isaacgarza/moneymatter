@@ -54,7 +54,7 @@ function resolveAccountCategory({ statementType, accountType }: { statementType:
   if (statementType === 'credit-card') return ACCOUNT_CATEGORIES.creditCard;
   const normalized = accountType.toUpperCase();
   if (normalized === 'SAVINGS' || normalized === 'MONEYMRKT') return ACCOUNT_CATEGORIES.saving;
-  return ACCOUNT_CATEGORIES.currentAccount;
+  return ACCOUNT_CATEGORIES.checking;
 }
 
 function resolvePaymentType({ transactionType }: { transactionType: string }): PAYMENT_TYPES {

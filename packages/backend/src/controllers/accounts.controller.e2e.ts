@@ -473,6 +473,48 @@ describe('Accounts controller', () => {
       expect(updated.initialBalance).toBe(2000);
     });
 
+    describe('removed categories', () => {
+      it('creates an account in the checking category and keeps it distinct from general', async () => {
+        const checking = await helpers.createAccount({
+          payload: { ...helpers.buildAccountPayload(), accountCategory: ACCOUNT_CATEGORIES.checking },
+          raw: true,
+        });
+
+        expect(checking.accountCategory).toBe(ACCOUNT_CATEGORIES.checking);
+
+        const fallback = await helpers.createAccount({ payload: helpers.buildAccountPayload(), raw: true });
+        expect(fallback.accountCategory).toBe(ACCOUNT_CATEGORIES.general);
+      });
+
+      it.each(['current-account', 'bonus', 'insurance'])(
+        'rejects creating an account in the %s category',
+        async (category) => {
+          const response = await helpers.createAccount({
+            payload: { ...helpers.buildAccountPayload(), accountCategory: category as ACCOUNT_CATEGORIES },
+            raw: false,
+          });
+
+          expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+        },
+      );
+
+      it.each(['current-account', 'bonus', 'insurance'])(
+        'rejects moving an account into the %s category',
+        async (category) => {
+          const account = await helpers.createAccount({ payload: helpers.buildAccountPayload(), raw: true });
+
+          const response = await helpers.updateAccount<helpers.ErrorResponse>({
+            id: account.id,
+            payload: { accountCategory: category as ACCOUNT_CATEGORIES },
+          });
+
+          expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+          const reloaded = await helpers.getAccount({ id: account.id, raw: true });
+          expect(reloaded.accountCategory).toBe(ACCOUNT_CATEGORIES.general);
+        },
+      );
+    });
+
     describe('dedicated-flow categories', () => {
       const createGeneralAccount = () =>
         helpers.createAccount({
