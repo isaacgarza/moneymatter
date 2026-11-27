@@ -485,6 +485,22 @@ describe('Accounts controller', () => {
           expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
         },
       );
+
+      it.each(['current-account', 'bonus', 'insurance'])(
+        'rejects moving an account into the %s category',
+        async (category) => {
+          const account = await helpers.createAccount({ payload: helpers.buildAccountPayload(), raw: true });
+
+          const response = await helpers.updateAccount<helpers.ErrorResponse>({
+            id: account.id,
+            payload: { accountCategory: category as ACCOUNT_CATEGORIES },
+          });
+
+          expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+          const reloaded = await helpers.getAccount({ id: account.id, raw: true });
+          expect(reloaded.accountCategory).toBe(ACCOUNT_CATEGORIES.general);
+        },
+      );
     });
 
     describe('dedicated-flow categories', () => {

@@ -2,8 +2,9 @@ import { QueryInterface } from 'sequelize';
 
 /**
  * `general` is the one checking category. `current-account`, `bonus` and `insurance` leave the
- * category list, so every row holding one becomes `general` before the values stop validating;
- * otherwise those rows would fail the API schema on their next update. Existing `cash` rows move
+ * category list, so every row holding one becomes `general`; a row left on a value the registry no
+ * longer knows would get no label, icon or colour, and would be refused whenever an update re-sent
+ * its category. Existing `cash` rows move
  * to `general` too, although `cash` stays a category a new account can pick.
  *
  * The list is frozen here on purpose: a migration never reads the live category enum, so it keeps
