@@ -113,9 +113,9 @@ Other instructions:
    - If a string's wording is non-obvious (e.g., domain terminology, formal vs. casual tone), ask the user for the copy before delegating to the subagent.
 8. For Chrome extenstion use Brave browser, not Chrome
 9. **Frontend env vars (`VITE_*`) must also be added to CI** – they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in `.github/workflows/image-to-docker-hub.yml`.
-10. **CRITICAL: No Git Commits or Pushes**
-    - **NEVER** run `git commit`, `git push`, or any command that creates commits or pushes to remote.
-    - The user manages all git operations themselves. No exceptions.
+10. **Git: Commit on a Feature Branch and Always Open a PR**
+    - Never commit or push on `dev` (or any shared branch). Work in a worktree on a feature branch (`wt switch -c`).
+    - When the work is complete, commit it and open a draft PR with `pr create --draft`. Do not wait to be asked, and do not end the turn with an offer to open one.
 11. **CRITICAL: Migrations – Modify Existing Before Creating New**
     - **NEVER** create a new migration file if you can modify an existing one that was created during the current development process and has **not been merged to `dev`** yet.
     - Check the current branch's unmerged migrations first (`git log dev..HEAD` or git status for new files). If the change logically belongs in an existing unmerged migration, update that migration instead of adding a new one.
