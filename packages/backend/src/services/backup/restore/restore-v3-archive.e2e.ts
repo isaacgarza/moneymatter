@@ -79,7 +79,11 @@ describe('Restoring a format version 3 backup (cents to decimals)', () => {
 
     const [vehicle] = helpers.backupRows({ archive, name: 'vehicles' });
     helpers.expectDecimal({ actual: vehicle!.purchasePrice, expected: '20000.5' });
-    helpers.expectDecimal({ actual: vehicle!.valueAnchor, expected: '15000.75' });
+    // The v3 archive's vehicle anchor is restored as the account's one valuation.
+    expect(vehicle!.valueAnchor).toBeUndefined();
+    const [valuation] = helpers.backupRows({ archive, name: 'account-valuations' });
+    expect(valuation!.accountId).toBe(vehicle!.accountId);
+    helpers.expectDecimal({ actual: valuation!.value, expected: '15000.75' });
     const [servedVehicle] = await helpers.getVehicles({ raw: true });
     expect({ purchasePrice: servedVehicle!.purchasePrice, valueAnchor: servedVehicle!.valueAnchor }).toEqual({
       purchasePrice: 20000.5,

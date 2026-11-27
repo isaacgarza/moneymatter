@@ -10,7 +10,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { refreshVehicleValueIfStale } from '@services/vehicles/refresh-vehicle-value.service';
 
-export const serializeAccountValuation = (valuation: AccountValuations): AccountValuationApiResponse => ({
+const serializeAccountValuation = (valuation: AccountValuations): AccountValuationApiResponse => ({
   id: valuation.id,
   accountId: valuation.accountId,
   date: valuation.date,

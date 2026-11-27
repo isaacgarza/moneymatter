@@ -21,6 +21,16 @@ describe('latestValuationOnOrBefore', () => {
     expect(latestValuationOnOrBefore({ valuations: entries, asOf: '2024-09-30' })?.id).toBe('b');
   });
 
+  it('prefers the entry listed later when two share a date', () => {
+    const sameDay = [
+      { id: 'purchase', date: '2024-01-15' },
+      { id: 'valuation', date: '2024-01-15' },
+    ];
+
+    expect(latestValuationOnOrBefore({ valuations: sameDay, asOf: '2024-01-15' })?.id).toBe('valuation');
+    expect(latestValuationOnOrBefore({ valuations: sameDay })?.id).toBe('valuation');
+  });
+
   it('returns null when every entry is later, or there are none', () => {
     expect(latestValuationOnOrBefore({ valuations: entries, asOf: '2023-12-31' })).toBeNull();
     expect(latestValuationOnOrBefore({ valuations: [] })).toBeNull();
