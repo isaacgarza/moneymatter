@@ -1,7 +1,7 @@
 import type { TransactionPrefill } from '@/components/dialogs/manage-transaction/types';
 import { ref, shallowRef, watch } from 'vue';
 
-/** State of the header "Add Transaction" dialog, so any page can open it prefilled. */
+/** State of the Transactions page "New transaction" dialog, so the dialog can reopen itself prefilled. */
 export const isCreateTransactionDialogOpen = ref(false);
 export const createTransactionPrefill = shallowRef<TransactionPrefill | undefined>();
 

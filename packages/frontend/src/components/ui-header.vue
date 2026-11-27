@@ -25,57 +25,6 @@
             </Sheet.SheetContent>
           </Sheet.Sheet>
         </template>
-
-        <div class="flex items-center gap-px">
-          <ManageTransactionDialog v-model:open="isCreateTransactionDialogOpen" :prefill="createTransactionPrefill">
-            <Button variant="default" size="sm" class="rounded-r-none">
-              <PlusIcon class="size-4" />
-              {{ isMobileView ? $t('header.add') : $t('header.newTransaction') }}
-            </Button>
-          </ManageTransactionDialog>
-
-          <Popover.Popover v-model:open="isAddMenuOpen">
-            <Popover.PopoverTrigger as-child>
-              <Button variant="default" size="sm" class="rounded-l-none px-2" :aria-label="$t('header.moreActions')">
-                <ChevronDownIcon class="size-4" />
-              </Button>
-            </Popover.PopoverTrigger>
-            <Popover.PopoverContent class="grid w-72 gap-0.5 p-1.5" align="start">
-              <RouterLink :to="{ name: ROUTES_NAMES.settingsDataManagement }" @click="isAddMenuOpen = false">
-                <Button variant="ghost" class="h-auto w-full justify-start gap-3 p-2 text-left whitespace-normal">
-                  <span
-                    class="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-md"
-                  >
-                    <ImportIcon class="size-4" />
-                  </span>
-                  <span class="grid">
-                    <span class="text-sm font-semibold">{{ $t('header.importData') }}</span>
-                    <span class="text-muted-foreground text-xs font-normal">{{ $t('header.importDataHint') }}</span>
-                  </span>
-                </Button>
-              </RouterLink>
-
-              <Button
-                v-if="!userStore.isDemo"
-                variant="ghost"
-                class="h-auto w-full justify-start gap-3 p-2 text-left whitespace-normal"
-                @click="openAttachInvoice"
-              >
-                <span
-                  class="bg-primary/10 text-primary-text flex size-9 shrink-0 items-center justify-center rounded-md"
-                >
-                  <ReceiptTextIcon class="size-4" />
-                </span>
-                <span class="grid">
-                  <span class="text-sm font-semibold">{{ $t('header.attachInvoice') }}</span>
-                  <span class="text-muted-foreground text-xs font-normal">{{ $t('header.attachInvoiceHint') }}</span>
-                </span>
-              </Button>
-            </Popover.PopoverContent>
-          </Popover.Popover>
-        </div>
-
-        <AttachInvoiceDialog v-if="isAttachInvoiceMounted" v-model:open="isAttachInvoiceOpen" />
       </div>
 
       <div class="ml-auto flex items-center gap-2">
@@ -136,7 +85,6 @@
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
 import TrialBanner from '@/components/billing/trial-banner.vue';
 import DemoBanner from '@/components/demo/demo-banner.vue';
-import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import * as Sheet from '@/components/lib/ui/sheet';
@@ -145,10 +93,6 @@ import Sidebar from '@/components/sidebar/index.vue';
 import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
 import UserMenu from '@/components/user-menu.vue';
-import {
-  createTransactionPrefill,
-  isCreateTransactionDialogOpen,
-} from '@/composable/global-state/create-transaction-dialog';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { useCategorizationStatus } from '@/composable/use-categorization-status';
 import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
@@ -156,37 +100,19 @@ import { useDateLocale } from '@/composable/use-date-locale';
 import { useIdleEnabled } from '@/composable/use-idle-enabled';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ROUTES_NAMES } from '@/routes/constants';
-import { useAccountsStore, useUserStore } from '@/stores';
+import { useAccountsStore } from '@/stores';
 import {
   AlertTriangleIcon,
-  ChevronDownIcon,
   CloudAlertIcon,
   CloudCheckIcon,
-  ImportIcon,
   MenuIcon,
-  PlusIcon,
-  ReceiptTextIcon,
   RefreshCcw,
   SparklesIcon,
 } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { computed, defineAsyncComponent, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { RouterLink, useRoute } from 'vue-router';
-
-const AttachInvoiceDialog = defineAsyncComponent(() => import('@/components/dialogs/attach-invoice/index.vue'));
-
-const userStore = useUserStore();
-const isAddMenuOpen = ref(false);
-const isAttachInvoiceMounted = ref(false);
-const isAttachInvoiceOpen = ref(false);
-
-const openAttachInvoice = () => {
-  isAddMenuOpen.value = false;
-  isAttachInvoiceMounted.value = true;
-  isAttachInvoiceOpen.value = true;
-};
+import { useRoute } from 'vue-router';
 
 const accountsStore = useAccountsStore();
 const { accountsNeedingRelink, isAccountsFetched } = storeToRefs(accountsStore);
