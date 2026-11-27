@@ -7,9 +7,10 @@
  * Vehicles).
  */
 import { DEPRECIATION_PRESET, type RecordId, VEHICLE_CLASS } from '@bt/shared/types';
-import { moneyToApiDecimal, moneyToApiDecimalOrNull } from '@common/types/money';
+import { moneyToApiDecimal } from '@common/types/money';
 import type Vehicles from '@models/vehicles.model';
 import { serializeAccount, type AccountApiResponse } from '@root/serializers/accounts.serializer';
+import { latestValuationOnOrBefore } from '@services/account-valuations/latest-valuation';
 
 export interface VehicleApiResponse {
   id: string;
@@ -34,7 +35,13 @@ export interface VehicleApiResponse {
   account: AccountApiResponse | null;
 }
 
+/**
+ * `valueAnchor` and `valueAnchorDate` are the vehicle's latest valuation (null: the curve starts
+ * from the purchase). They are read from the log the vehicle was loaded with, never stored.
+ */
 export function serializeVehicle(vehicle: Vehicles): VehicleApiResponse {
+  const anchor = latestValuationOnOrBefore({ valuations: vehicle.valuations ?? [] });
+
   return {
     id: vehicle.id,
     accountId: vehicle.accountId,
@@ -46,8 +53,8 @@ export function serializeVehicle(vehicle: Vehicles): VehicleApiResponse {
     vehicleClass: vehicle.vehicleClass,
     purchasePrice: moneyToApiDecimal(vehicle.purchasePrice),
     purchaseDate: vehicle.purchaseDate,
-    valueAnchor: moneyToApiDecimalOrNull(vehicle.valueAnchor),
-    valueAnchorDate: vehicle.valueAnchorDate,
+    valueAnchor: anchor ? moneyToApiDecimal(anchor.value) : null,
+    valueAnchorDate: anchor ? anchor.date : null,
     depreciationPreset: vehicle.depreciationPreset,
     customAnnualRatePct: vehicle.customAnnualRatePct ? Number(vehicle.customAnnualRatePct) : null,
     salvageFloorPct: Number(vehicle.salvageFloorPct),

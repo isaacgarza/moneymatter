@@ -32,4 +32,60 @@ describe('normalizeLegacyArchive', () => {
 
     expect(transactions.map((row) => row.deletionReason)).toEqual(['reconciliation', 'trash', null]);
   });
+
+  describe('vehicle anchors', () => {
+    const vehicle = (patch: Record<string, unknown> = {}) => ({
+      id: 'v1',
+      userId: 1,
+      accountId: 'acc-car',
+      valueAnchor: 1500075,
+      valueAnchorDate: '2026-11-12',
+      ...patch,
+    });
+
+    it('moves the stored anchor into a valuation, as stored, and drops the columns', () => {
+      const vehicles = [vehicle()];
+      const parsedByPath = new Map<string, unknown>([['data/vehicles.json', vehicles]]);
+
+      normalizeLegacyArchive({ formatVersion: 3, parsedByPath });
+
+      expect(vehicles[0]).not.toHaveProperty('valueAnchor');
+      expect(vehicles[0]).not.toHaveProperty('valueAnchorDate');
+      expect(parsedByPath.get('data/account-valuations.json')).toEqual([
+        expect.objectContaining({ userId: 1, accountId: 'acc-car', date: '2026-11-12', value: 1500075, note: null }),
+      ]);
+    });
+
+    it('writes no valuation for a vehicle without an anchor', () => {
+      const parsedByPath = new Map<string, unknown>([
+        ['data/vehicles.json', [vehicle({ valueAnchor: null, valueAnchorDate: null })]],
+      ]);
+
+      normalizeLegacyArchive({ formatVersion: 3, parsedByPath });
+
+      expect(parsedByPath.has('data/account-valuations.json')).toBe(false);
+    });
+
+    it('removes the override transactions of a vehicle account and keeps every other transaction', () => {
+      const override = (patch: Record<string, unknown>) => ({
+        transferNature: 'transfer_out_wallet',
+        externalData: { balanceAdjustment: true },
+        accountId: 'acc-car',
+        ...patch,
+      });
+      const kept = [
+        override({ id: 'other-account', accountId: 'acc-bank' }),
+        override({ id: 'import-transfer', externalData: {} }),
+        { id: 'plain', accountId: 'acc-bank', transferNature: 'not_transfer' },
+      ];
+      const parsedByPath = new Map<string, unknown>([
+        ['data/vehicles.json', [vehicle()]],
+        ['data/transactions.json', [override({ id: 'override' }), ...kept]],
+      ]);
+
+      normalizeLegacyArchive({ formatVersion: 3, parsedByPath });
+
+      expect(parsedByPath.get('data/transactions.json')).toEqual(kept);
+    });
+  });
 });

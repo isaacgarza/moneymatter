@@ -1,14 +1,13 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { getCurrencyDecimals } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
+import AccountValuations from '@models/account-valuations.model';
 import Accounts from '@models/accounts.model';
 import ExchangeRates from '@models/exchange-rates.model';
-import { findTransactions } from '@models/transactions-query';
-import Transactions from '@models/transactions.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import Vehicles from '@models/vehicles.model';
+import { latestValuationOnOrBefore } from '@services/account-valuations/latest-valuation';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
 import { buildUsdRateLookup } from '@services/stats/build-usd-rate-lookup';
 import {
@@ -24,11 +23,8 @@ const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
 const vehicleValueAtDate = (vehicle: VehicleCompute, dateStr: string): number => {
   if (vehicle.purchaseDate > dateStr) return 0;
 
-  let activeAnchor = vehicle.anchors[0]!;
-  for (const anchor of vehicle.anchors) {
-    if (anchor.date <= dateStr) activeAnchor = anchor;
-    else break;
-  }
+  // The purchase anchor is dated on or before `dateStr` (checked above), so one always holds.
+  const activeAnchor = latestValuationOnOrBefore({ valuations: vehicle.anchors, asOf: dateStr })!;
 
   const value = computeVehicleValue({
     anchorValue: Money.fromMinorUnits({ value: activeAnchor.valueMinor, decimals: vehicle.accountDecimals }),
@@ -44,7 +40,7 @@ const vehicleValueAtDate = (vehicle: VehicleCompute, dateStr: string): number =>
 };
 
 interface VehicleAnchor {
-  /** yyyy-MM-dd. Either purchaseDate or an override tx date. */
+  /** yyyy-MM-dd. Either purchaseDate or a valuation date. */
   date: string;
   /** Vehicle value at the anchor moment, in minor units at the account currency's decimals. */
   valueMinor: number;
@@ -63,9 +59,8 @@ interface VehicleCompute {
   salvageFloorPct: number;
   /**
    * Anchor history in chronological order. First entry is always the purchase
-   * (purchaseDate, purchasePrice). Subsequent entries are manual overrides
-   * (transfer_out_wallet txs), each with the post-override value reconstructed
-   * from the previous anchor plus the signed tx amount.
+   * (purchaseDate, purchasePrice). Subsequent entries are the account's
+   * valuations, each an absolute value.
    */
   anchors: VehicleAnchor[];
 }
@@ -74,15 +69,14 @@ interface VehicleCompute {
  * Day-by-day depreciated value of all vehicle accounts for a user, in minor units of the base currency.
  *
  * Why we don't read `Balances` for vehicles: those rows are sparse — written
- * only on vehicle create, on manual override, and on the 7-day lazy refresh.
+ * only on vehicle create, on a new valuation, and on the 7-day lazy refresh.
  * Filling forward from those snapshots makes the chart show a flat vehicle
  * value across the entire range. Instead, we recompute the depreciation curve
  * for each chart date using the same pure function the live read path uses.
  *
- * Anchor handling mirrors what `refresh-vehicle-value.service` does at write
- * time: start from (purchaseDate, purchasePrice), then each manual override
- * (`transfer_out_wallet` tx on the vehicle's account) resets the anchor to
- * (tx.time, depreciated_value_at_tx + signed_tx_amount). For dates before a
+ * Anchor handling mirrors `refresh-vehicle-value.service`: start from
+ * (purchaseDate, purchasePrice), then each valuation on the vehicle's account
+ * resets the anchor to its (date, value). For dates before a
  * vehicle's purchase, it contributes 0 — it didn't exist in net worth yet.
  */
 export const calculateVehiclesBalanceHistory = async ({
@@ -119,31 +113,19 @@ export const calculateVehiclesBalanceHistory = async ({
 
   const accountIds = activeVehicles.map((v) => v.accountId);
 
-  // Overrides are written by the balance-adjustment flow, which stamps them as adjustments —
-  // excluding those (the boundary's default) would erase every anchor after the purchase.
-  const overrideTxs = await findTransactions({
-    planned: 'exclude',
-    access: { accountOwner: userId },
-    balanceAdjustments: 'include',
-    transfers: { natures: [TRANSACTION_TRANSFER_NATURE.transfer_out_wallet] },
-    completeness: 'all',
-    where: {
-      accountId: { [Op.in]: accountIds },
-      time: { [Op.lte]: endOfDay(parseISO(maxDate)) },
-    },
+  const valuations = await AccountValuations.findAll({
+    where: { accountId: { [Op.in]: accountIds }, date: { [Op.lte]: maxDate } },
     order: [
       ['accountId', 'ASC'],
-      ['time', 'ASC'],
-      ['createdAt', 'ASC'],
+      ['date', 'ASC'],
     ],
-    attributes: ['accountId', 'time', 'amount', 'transactionType'],
   });
 
-  const txsByAccount = new Map<string, Transactions[]>();
-  for (const tx of overrideTxs) {
-    const list = txsByAccount.get(tx.accountId);
-    if (list) list.push(tx);
-    else txsByAccount.set(tx.accountId, [tx]);
+  const valuationsByAccount = new Map<string, AccountValuations[]>();
+  for (const valuation of valuations) {
+    const list = valuationsByAccount.get(valuation.accountId);
+    if (list) list.push(valuation);
+    else valuationsByAccount.set(valuation.accountId, [valuation]);
   }
 
   const decimalsByCurrency = new Map<string, number>();
@@ -168,26 +150,11 @@ export const calculateVehiclesBalanceHistory = async ({
       ],
     };
 
-    const txs = txsByAccount.get(vehicle.accountId) ?? [];
-    for (const tx of txs) {
-      const txDateStr = formatDate(tx.time);
-      const lastAnchor = compute.anchors[compute.anchors.length - 1]!;
-
-      const preTxValue = computeVehicleValue({
-        anchorValue: Money.fromMinorUnits({ value: lastAnchor.valueMinor, decimals: accountDecimals }),
-        anchorDate: parseISO(lastAnchor.date),
-        asOf: parseISO(txDateStr),
-        vehicleClass: compute.vehicleClass,
-        preset: compute.preset,
-        customAnnualRatePct: compute.customAnnualRatePct,
-        salvageFloorPct: compute.salvageFloorPct,
+    for (const valuation of valuationsByAccount.get(vehicle.accountId) ?? []) {
+      compute.anchors.push({
+        date: valuation.date,
+        valueMinor: valuation.value.toMinorUnits({ decimals: accountDecimals }),
       });
-
-      const txMinor = tx.amount.toMinorUnits({ decimals: accountDecimals });
-      const signedTxMinor = tx.transactionType === TRANSACTION_TYPES.income ? txMinor : -txMinor;
-      const newAnchorMinor = preTxValue.toMinorUnits({ decimals: accountDecimals }) + signedTxMinor;
-
-      compute.anchors.push({ date: txDateStr, valueMinor: newAnchorMinor });
     }
 
     return compute;

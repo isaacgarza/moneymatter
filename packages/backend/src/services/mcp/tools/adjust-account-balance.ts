@@ -11,7 +11,7 @@ export const adjustAccountBalanceTool = defineTool({
   toolset: 'core',
   access: 'write',
   description:
-    'Set an account to a specific balance by creating an adjustment transaction for the difference. Returns the previous balance, new balance, and the generated transaction (null if the balance was already at the target).',
+    'Set an account to a specific balance by creating an adjustment transaction for the difference. Returns the previous balance, new balance, and the generated transaction (null if the balance was already at the target). For a vehicle, no transaction is created: the value is recorded as a valuation on the given date and depreciation continues from it, so transaction is null and newBalance is the depreciated value today.',
   input: {
     accountId: recordId().describe('ID of the account to adjust.'),
     newBalance: z
