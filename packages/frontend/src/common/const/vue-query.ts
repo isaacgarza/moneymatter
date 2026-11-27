@@ -249,7 +249,8 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // vehicles
   vehiclesList: [transactionChange, 'vehicles-list'] as const,
   vehicleDetail: [transactionChange, 'vehicle-detail'] as const,
-  vehicleOverrideHistory: [transactionChange, 'vehicle-override-history'] as const,
+  // the value log of an account (what its owner says it is worth on a date)
+  accountValuations: [transactionChange, 'account-valuations'] as const,
 
   // transaction templates
   // No transactionChange prefix: creating or editing a transaction never changes a template.

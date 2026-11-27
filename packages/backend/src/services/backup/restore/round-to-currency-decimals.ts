@@ -58,6 +58,7 @@ const SNAPSHOT_AMOUNT: CurrencySource = { currency: snapshot('currencyCode') };
 
 /** Each money column's currency, keyed `file.attribute`. */
 const COLUMN_CURRENCIES: Record<string, CurrencySource> = {
+  'account-valuations.value': ACCOUNT,
   'accounts.initialBalance': OWN,
   'accounts.refInitialBalance': OWN_REF,
   'accounts.currentBalance': OWN,
@@ -105,7 +106,6 @@ const COLUMN_CURRENCIES: Record<string, CurrencySource> = {
   'transactions.originalAmount': { currency: own('originalCurrencyCode') },
   'transactions.paymentAmount': { currency: transaction({ key: 'paymentParentId', attrName: 'currencyCode' }) },
   'vehicles.purchasePrice': ACCOUNT,
-  'vehicles.valueAnchor': ACCOUNT,
 };
 
 const JSON_KEY_CURRENCIES: Record<string, Record<string, CurrencySource>> = {

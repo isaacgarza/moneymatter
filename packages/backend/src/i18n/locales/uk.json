@@ -305,6 +305,10 @@
     "alreadyLinked": "Ці рахунки вже пов'язані.",
     "linkNotFound": "Зв'язок не знайдено."
   },
+  "accountValuations": {
+    "accountNotFound": "Рахунок не знайдено.",
+    "notFound": "Оцінку не знайдено."
+  },
   "loans": {
     "loanNotFound": "Кредит не знайдено.",
     "createAccountFailed": "Не вдалося створити рахунок кредиту",

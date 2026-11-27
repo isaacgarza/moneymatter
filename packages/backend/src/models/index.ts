@@ -3,6 +3,7 @@ import { types as pgTypes } from 'pg';
 import { Sequelize } from 'sequelize-typescript';
 
 import AccountLinksModel from './account-links.model';
+import AccountValuationsModel from './account-valuations.model';
 import AccountGroupingModel from './accounts-groups/account-grouping.model';
 import AccountGroupsModel from './accounts-groups/account-groups.model';
 import AccountsModel from './accounts.model';
@@ -165,6 +166,7 @@ const models = [
   VehiclesModel,
   LoanDetailsModel,
   AccountLinksModel,
+  AccountValuationsModel,
   TransactionAutomationsModel,
   TransactionAttachmentsModel,
   ImportBatchesModel,

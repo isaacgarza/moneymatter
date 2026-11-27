@@ -2,11 +2,11 @@ import { RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import Accounts from '@models/accounts.model';
 import Vehicles from '@models/vehicles.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 
+import { VEHICLE_RESPONSE_INCLUDE } from './helpers';
 import { refreshVehicleValueIfStale } from './refresh-vehicle-value.service';
 
 interface GetVehicleParams {
@@ -36,7 +36,7 @@ const getVehicleImpl = async ({ userId, vehicleId }: GetVehicleParams) => {
   await refreshVehicleValueIfStale({ vehicleId, force: true });
 
   return Vehicles.findByPk(vehicleId, {
-    include: [{ model: Accounts }],
+    include: VEHICLE_RESPONSE_INCLUDE,
   });
 };
 

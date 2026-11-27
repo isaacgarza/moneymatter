@@ -2,9 +2,10 @@ import { DEPRECIATION_PRESET, RecordId, VEHICLE_CLASS } from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
+import AccountValuations from '@models/account-valuations.model';
 import Accounts from '@models/accounts.model';
 import Users from '@models/users.model';
-import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
+import { BelongsTo, Column, HasMany, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
 
 @Table({
   tableName: 'Vehicles',
@@ -70,15 +71,6 @@ export default class Vehicles extends Model {
   })
   purchaseDate!: string;
 
-  @MoneyField({ allowNull: true })
-  declare valueAnchor: Money | null;
-
-  @Column({
-    type: DataType.DATEONLY,
-    allowNull: true,
-  })
-  valueAnchorDate!: string | null;
-
   @Column({
     type: DataType.STRING(20),
     allowNull: false,
@@ -119,4 +111,8 @@ export default class Vehicles extends Model {
 
   @BelongsTo(() => Users)
   user!: Users;
+
+  /** The account's valuation log; the latest entry is the depreciation anchor. */
+  @HasMany(() => AccountValuations, { foreignKey: 'accountId', sourceKey: 'accountId', constraints: false })
+  valuations?: AccountValuations[];
 }

@@ -301,6 +301,10 @@
     "alreadyLinked": "These accounts are already linked.",
     "linkNotFound": "Link not found."
   },
+  "accountValuations": {
+    "accountNotFound": "Account not found.",
+    "notFound": "Valuation not found."
+  },
   "loans": {
     "loanNotFound": "Loan not found.",
     "createAccountFailed": "Failed to create loan account",

@@ -359,14 +359,14 @@
         "cancel": "Cancel"
       },
       "overrideHistory": {
-        "title": "Override history",
-        "empty": "No manual overrides yet. Override the value to record one.",
+        "title": "Value history",
+        "empty": "No values entered yet. Override the value to record one.",
         "delete": "Delete",
-        "deleteTitle": "Delete this override?",
-        "deleteDescription": "Removing this override re-anchors the depreciation to the previous override (or original purchase if none). The associated transaction will be moved to Trash, where you can restore it for 30 days.",
+        "deleteTitle": "Delete this value?",
+        "deleteDescription": "Removing this value re-anchors the depreciation to the previous value (or the original purchase if there is none). This cannot be undone.",
         "deleteConfirm": "Delete",
-        "deleteSuccess": "Override removed and its transaction moved to Trash",
-        "deleteError": "Failed to remove override"
+        "deleteSuccess": "Value removed",
+        "deleteError": "Failed to remove value"
       },
       "sections": {
         "vehicle": "Vehicle",
