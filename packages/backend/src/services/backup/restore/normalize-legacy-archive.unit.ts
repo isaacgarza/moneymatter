@@ -33,7 +33,7 @@ describe('normalizeLegacyArchive', () => {
     expect(transactions.map((row) => row.deletionReason)).toEqual(['reconciliation', 'trash', null]);
   });
 
-  it('restores accounts of removed categories as general and keeps every other category', () => {
+  it('restores accounts of removed categories as their replacement and keeps every other category', () => {
     const accounts = [
       { id: 1, accountCategory: 'current-account' },
       { id: 2, accountCategory: 'bonus' },
@@ -45,7 +45,7 @@ describe('normalizeLegacyArchive', () => {
 
     normalizeLegacyArchive({ formatVersion: 99, parsedByPath });
 
-    expect(accounts.map((row) => row.accountCategory)).toEqual(['general', 'general', 'general', 'cash', 'saving']);
+    expect(accounts.map((row) => row.accountCategory)).toEqual(['checking', 'general', 'general', 'cash', 'saving']);
   });
 
   describe('vehicle anchors', () => {

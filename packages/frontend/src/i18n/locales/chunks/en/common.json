@@ -97,7 +97,8 @@
       "unlinkFailed": "Could not remove the link."
     },
     "accountCategories": {
-      "general": "Checking",
+      "checking": "Checking",
+      "general": "Uncategorized",
       "cash": "Cash",
       "creditCard": "Credit card",
       "saving": "Saving account",

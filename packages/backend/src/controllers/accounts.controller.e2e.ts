@@ -474,6 +474,18 @@ describe('Accounts controller', () => {
     });
 
     describe('removed categories', () => {
+      it('creates an account in the checking category and keeps it distinct from general', async () => {
+        const checking = await helpers.createAccount({
+          payload: { ...helpers.buildAccountPayload(), accountCategory: ACCOUNT_CATEGORIES.checking },
+          raw: true,
+        });
+
+        expect(checking.accountCategory).toBe(ACCOUNT_CATEGORIES.checking);
+
+        const fallback = await helpers.createAccount({ payload: helpers.buildAccountPayload(), raw: true });
+        expect(fallback.accountCategory).toBe(ACCOUNT_CATEGORIES.general);
+      });
+
       it.each(['current-account', 'bonus', 'insurance'])(
         'rejects creating an account in the %s category',
         async (category) => {

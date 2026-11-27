@@ -10,6 +10,7 @@ import {
   CarIcon,
   CreditCardIcon,
   HandCoinsIcon,
+  LandmarkIcon,
   PiggyBankIcon,
   TrendingUpIcon,
   WalletIcon,
@@ -25,6 +26,7 @@ import type { Component } from 'vue';
  */
 
 const ACCOUNT_ICONS: Record<AccountIconId, Component> = {
+  landmark: LandmarkIcon,
   wallet: WalletIcon,
   'piggy-bank': PiggyBankIcon,
   'credit-card': CreditCardIcon,

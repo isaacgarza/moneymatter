@@ -68,17 +68,19 @@ function normalizeSettings({ settings }: { settings: Row }): void {
 }
 
 /**
- * Categories an older archive may still carry that no longer exist; each account holding one
- * restores as `general`, like the migration that merged them. `cash` is not listed: it is still a
- * valid category, and only rows already in a database were moved off it.
+ * Categories an older archive may still carry that no longer exist, and the category an account
+ * holding one restores as: the same moves as the migration that retired them.
  */
-const REMOVED_ACCOUNT_CATEGORIES = new Set(['current-account', 'bonus', 'insurance']);
+const REMOVED_ACCOUNT_CATEGORIES = new Map([
+  ['current-account', 'checking'],
+  ['bonus', 'general'],
+  ['insurance', 'general'],
+]);
 
-function mergeRemovedAccountCategories({ parsedByPath }: { parsedByPath: Map<string, unknown> }): void {
+function replaceRemovedAccountCategories({ parsedByPath }: { parsedByPath: Map<string, unknown> }): void {
   for (const row of rowsAt({ parsedByPath, name: 'accounts' })) {
-    if (typeof row.accountCategory === 'string' && REMOVED_ACCOUNT_CATEGORIES.has(row.accountCategory)) {
-      row.accountCategory = 'general';
-    }
+    if (typeof row.accountCategory !== 'string') continue;
+    row.accountCategory = REMOVED_ACCOUNT_CATEGORIES.get(row.accountCategory) ?? row.accountCategory;
   }
 }
 
@@ -172,7 +174,7 @@ export function normalizeLegacyArchive({
     // Rows soft-deleted before `deletionReason` existed came from reconciliation; the DB CHECK needs a reason.
     if (row.deletedAt && !row.deletionReason) row.deletionReason = TRANSACTION_DELETION_REASON.reconciliation;
   }
-  mergeRemovedAccountCategories({ parsedByPath });
+  replaceRemovedAccountCategories({ parsedByPath });
   moveVehicleAnchorsToValuations({ parsedByPath });
   if (formatVersion > LEGACY_TRACKER_TYPE_VERSION) return;
   if (formatVersion <= LEGACY_TRACKER_NAMING_VERSION) normalizeTrackerNaming({ parsedByPath });

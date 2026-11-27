@@ -23,6 +23,7 @@ describe('account category derived lists', () => {
   it('goal eligible categories', () => {
     expect(new Set(GOAL_ELIGIBLE_ACCOUNT_CATEGORIES)).toEqual(
       new Set([
+        ACCOUNT_CATEGORIES.checking,
         ACCOUNT_CATEGORIES.general,
         ACCOUNT_CATEGORIES.cash,
         ACCOUNT_CATEGORIES.saving,
@@ -35,6 +36,7 @@ describe('account category derived lists', () => {
   it('budget plan attachable categories', () => {
     expect(new Set(BUDGET_PLAN_ATTACHABLE_ACCOUNT_CATEGORIES)).toEqual(
       new Set([
+        ACCOUNT_CATEGORIES.checking,
         ACCOUNT_CATEGORIES.general,
         ACCOUNT_CATEGORIES.cash,
         ACCOUNT_CATEGORIES.saving,

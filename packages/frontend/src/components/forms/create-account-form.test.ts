@@ -158,7 +158,7 @@ describe('CreateAccountForm', () => {
           name: 'My Savings',
           initialBalance: 250.5,
           creditLimit: 1000,
-          accountCategory: ACCOUNT_CATEGORIES.general,
+          accountCategory: ACCOUNT_CATEGORIES.checking,
           currencyCode: expect.any(String),
         }),
       );
@@ -242,7 +242,7 @@ describe('CreateAccountForm', () => {
       await submitForm({ wrapper });
 
       const payload = createAccountMock.mock.calls[0]![0];
-      expect(payload.accountCategory).toBe(ACCOUNT_CATEGORIES.general);
+      expect(payload.accountCategory).toBe(ACCOUNT_CATEGORIES.checking);
     });
 
     it('prefills with "saving" when route query has category=saving', async () => {

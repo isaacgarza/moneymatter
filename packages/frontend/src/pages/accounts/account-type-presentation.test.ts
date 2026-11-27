@@ -25,6 +25,7 @@ describe('account-type-presentation', () => {
 
   describe('getAccountTypeTintedChipClass', () => {
     it.each([
+      [ACCOUNT_CATEGORIES.checking, 'bg-account-checking/15 text-account-checking'],
       [ACCOUNT_CATEGORIES.general, 'bg-account-checking/15 text-account-checking'],
       [ACCOUNT_CATEGORIES.saving, 'bg-account-saving/15 text-account-saving'],
       [ACCOUNT_CATEGORIES.creditCard, 'bg-account-credit/15 text-account-credit'],

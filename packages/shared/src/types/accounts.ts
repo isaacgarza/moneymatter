@@ -51,6 +51,8 @@ export enum ACCOUNT_STATUSES {
 }
 
 export enum ACCOUNT_CATEGORIES {
+  checking = 'checking',
+  /** The fallback for an account nobody has classified (synced, imported); shown as "Uncategorized". */
   general = 'general',
   cash = 'cash',
   creditCard = 'credit-card',
@@ -66,6 +68,7 @@ export type AccountColorId = 'checking' | 'saving' | 'credit' | 'cash' | 'invest
 
 /** Icon ids; the frontend maps each to a component. */
 export type AccountIconId =
+  | 'landmark'
   | 'wallet'
   | 'piggy-bank'
   | 'credit-card'
@@ -129,6 +132,13 @@ const definition = <const T extends Pick<AccountCategoryDefinition, 'labelKey' |
  * elsewhere are derived from it; add or change a category here, not at its call sites.
  */
 export const ACCOUNT_CATEGORY_REGISTRY = {
+  [ACCOUNT_CATEGORIES.checking]: definition({
+    labelKey: 'common.accountCategories.checking',
+    icon: 'landmark',
+    color: 'checking',
+    goalEligible: true,
+    budgetAttachable: true,
+  }),
   [ACCOUNT_CATEGORIES.general]: definition({
     labelKey: 'common.accountCategories.general',
     icon: 'wallet',

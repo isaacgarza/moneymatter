@@ -198,7 +198,7 @@ export async function seedShowcase({ call, log }) {
 
   const accounts = await call({ path: '/accounts' });
   for (const [name, accountCategory, initialBalance] of [
-    [CHECKING, 'general', 3200],
+    [CHECKING, 'checking', 3200],
     [HIGH_YIELD, 'saving', 4000],
     [RAINY_DAY, 'saving', 4600],
     [HOME_FUND, 'saving', 14000],
