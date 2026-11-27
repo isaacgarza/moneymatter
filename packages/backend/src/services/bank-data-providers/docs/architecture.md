@@ -494,13 +494,14 @@ setHistoryStartDate() → BankDataProviderConnections.historyBackfill (JSONB, ow
 bankHistoryBackfillCron, hourly at :20 → runHistoryStep() per connection with a start date set and not complete
   • skips while cooling down, or while the daily request cap is used (BANK_HISTORY_DAILY_REQUESTS, default 8)
   • first step finds the top of the range: the oldest bank row, never newer than the first sync's reach
-  • picks the newest window below the cursor; windows no account can use (all linked after them) cost nothing
+  • picks the newest window below the cursor
   • records the request, then calls syncConnectionAccounts({ window }) under the account sync locks
+  • per account: persists the rows, writes the bank balance, then derives the opening balance again
   • moves the cursor below the window once it is persisted
 ```
 
 - One request covers every account on the connection, so the cost is the number of windows, not accounts times windows.
-- A forward-only account keeps rows from the later of the window start and its link day (`clampSyncStartToLink`), so a start date is a ceiling on depth, not a promise.
+- The link day does not limit depth: a linked account is older than its link, so every window loads for every account. The bank owns the balance, so after each window `absorbLinkResidualWithRateFallback({ forceOpeningBalance: true })` sets `initialBalance = bank balance - sum of rows`, whatever the link's `residualTarget` was. Re-running a window is safe: the identity gap is zero the second time.
 - A window load never consumes planned rows and does not touch `lastSyncAt`.
 - 429 or 403 from the bridge starts a 24 hour cooldown. A window that fails 5 ticks in a row is skipped and the connection shows `attention`; saving the same date again retries it. A held sync lock makes no request and the spend is taken back.
 - The state lives in its own column rather than `metadata` because the auth-failure tracker rewrites the whole `metadata` object, which would undo a concurrent cursor update. `updateHistoryState()` is the only writer and takes the row lock.

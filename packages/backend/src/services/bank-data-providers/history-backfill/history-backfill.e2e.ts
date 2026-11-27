@@ -332,8 +332,8 @@ describe('Bank history backfill', () => {
     });
   });
 
-  describe('forward-only links', () => {
-    it('makes no request for history that predates the day an account was linked', async () => {
+  describe('accounts linked after the start date', () => {
+    it('loads history that predates the link and keeps the balance equal to the bank', async () => {
       await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
       const manualAccount = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ name: 'Manual checking', currencyCode: 'USD', initialBalance: 1000 }),
@@ -358,20 +358,29 @@ describe('Bank history backfill', () => {
         raw: true,
       });
       await helpers.bankDataProviders.waitForAccountsSyncToSettle();
-      const requestsAfterLinking = recorder.requests.length;
+      const bankBalance = Number((await helpers.getAccount({ id: manualAccount.id, raw: true })).currentBalance);
 
       await setStartDate({ connectionId, daysAgo: 270 });
-      await runBankHistoryBackfill();
+      for (let run = 0; run < 3; run++) await runBankHistoryBackfill();
 
-      expect(recorder.requests).toHaveLength(requestsAfterLinking);
       expect(await getHistory({ connectionId })).toMatchObject({
         state: BANK_HISTORY_STATE.complete,
         windowsDone: 3,
         windowsTotal: 3,
       });
       expect(await Transactions.count({ where: { accountId: manualAccount.id, originalId: { [Op.ne]: null } } })).toBe(
+        3,
+      );
+
+      // The bank owns the balance: loading older rows moves the opening balance, never the current one.
+      const account = await helpers.getAccount({ id: manualAccount.id, raw: true });
+      const rows = await Transactions.findAll({ where: { accountId: manualAccount.id } });
+      const signedSum = rows.reduce(
+        (sum, row) => sum + (row.transactionType === TRANSACTION_TYPES.income ? 1 : -1) * row.amount.toNumber(),
         0,
       );
+      expect(Number(account.currentBalance)).toBeCloseTo(bankBalance, 2);
+      expect(Number(account.initialBalance) + signedSum).toBeCloseTo(bankBalance, 2);
     });
   });
 
