@@ -1,9 +1,9 @@
 import {
-  ACCOUNT_CATEGORIES,
   API_ERROR_CODES,
   type LoanPaymentOverpayDetails,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  isManagedLoanAccount,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
@@ -45,7 +45,7 @@ const linkLoanPaymentsImpl = async ({
   // Row-lock the loan account so concurrent payment writes serialise against
   // this batch's balance read (same invariant as `assertLoanPaymentAllowed`).
   const loanAccount = await lockLoanAccountRow({ loanAccountId: accountId, userId });
-  if (!loanAccount || loanAccount.accountCategory !== ACCOUNT_CATEGORIES.loan) {
+  if (!loanAccount || !isManagedLoanAccount(loanAccount)) {
     throw new NotFoundError({ message: t({ key: 'loans.loanNotFound' }) });
   }
 

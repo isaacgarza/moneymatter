@@ -1,9 +1,9 @@
 import {
   TRANSACTION_TYPES,
   ACCOUNT_TYPES,
-  ACCOUNT_CATEGORIES,
   TRANSACTION_TRANSFER_NATURE,
   RecordId,
+  isManagedLoanAccount,
 } from '@bt/shared/types';
 import { getCurrencyDecimals } from '@common/lib/currency-precision';
 import { IdColumn } from '@common/types/id-column';
@@ -588,7 +588,7 @@ export default class Balances extends Model {
    * loan's today row.
    */
   static async setTodayRowToSpot({ account }: { account: Accounts }): Promise<void> {
-    if (account.accountCategory === ACCOUNT_CATEGORIES.loan) return;
+    if (isManagedLoanAccount(account)) return;
 
     await this.updateAccountBalance({
       accountId: account.id,

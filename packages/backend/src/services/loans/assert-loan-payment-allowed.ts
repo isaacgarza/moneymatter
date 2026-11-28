@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
+import { isManagedLoanAccount } from '@bt/shared/types';
 import { getCurrencyDecimals } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
@@ -46,7 +46,7 @@ export const assertLoanPaymentAllowed = async ({
   if (!loanAccount) {
     throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
   }
-  if (loanAccount.accountCategory !== ACCOUNT_CATEGORIES.loan) {
+  if (!isManagedLoanAccount(loanAccount)) {
     throw new ValidationError({
       message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
     });

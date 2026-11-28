@@ -16,6 +16,7 @@ import {
   TransactionDeletionReason,
   TransactionLocation,
   TransactionModel,
+  isManagedLoanAccount,
 } from '@bt/shared/types';
 import { CURRENCY_CODE_MAX_LENGTH } from '@common/lib/currency-code-columns';
 import { roundTransactionMoney } from '@common/lib/round-transaction-money';
@@ -561,10 +562,10 @@ export default class Transactions extends Model {
     }
 
     const account = await Accounts.findByPk(instance.accountId, {
-      attributes: ['accountCategory'],
+      attributes: ['accountCategory', 'type'],
     });
-    // Orphan accountIds are rejected by FK validation; only loans are locked down here.
-    if (account?.accountCategory !== ACCOUNT_CATEGORIES.loan) return;
+    // Orphan accountIds are rejected by FK validation; only managed loans are locked down here.
+    if (!account || !isManagedLoanAccount(account)) return;
 
     // Enforcement applies only to managed loans; the sidecar lookup runs solely
     // for loan-category accounts, keeping it off the hot path of ordinary writes.
