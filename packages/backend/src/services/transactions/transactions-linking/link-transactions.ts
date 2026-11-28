@@ -1,9 +1,4 @@
-import {
-  LINKED_TRANSFER_NATURES,
-  isManagedLoanAccount,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-} from '@bt/shared/types';
+import { LINKED_TRANSFER_NATURES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -12,6 +7,7 @@ import TransactionSplits from '@models/transaction-splits.model';
 import { findTransactions, updateTransactions } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
+import { isManagedLoan } from '@services/loans/is-managed-loan';
 import { assertTxWriteAccess } from '@services/sharing/auth/authorize-account-write.service';
 import { assertNotInPayment } from '@services/transactions/payment-legs';
 import { validateRefundLinks } from '@services/tx-refunds/validate-refund-links';
@@ -136,12 +132,14 @@ export const linkTransactions = withTransaction(
         const incomeLeg = base.transactionType === TRANSACTION_TYPES.income ? base : opposite;
         const incomeLegAccount = await Accounts.findOne({
           where: { id: incomeLeg.accountId },
-          attributes: ['accountCategory', 'type'],
+          attributes: ['accountCategory'],
         });
         if (!incomeLegAccount) {
           throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
         }
-        if (isManagedLoanAccount(incomeLegAccount)) {
+        if (
+          await isManagedLoan({ accountId: incomeLeg.accountId, accountCategory: incomeLegAccount.accountCategory })
+        ) {
           throw new ValidationError({ message: t({ key: 'transactions.loanAccountReadonly' }) });
         }
 

@@ -1,4 +1,10 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  API_ERROR_CODES,
+  BANK_PROVIDER_TYPE,
+} from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
@@ -6,7 +12,7 @@ import { SIMPLEFIN_ACCOUNT_1, getMockedSimplefinAccountSet } from '@tests/mocks/
 import { VALID_SIMPLEFIN_SETUP_TOKEN, getSimplefinAccountsMock } from '@tests/mocks/simplefin/mock-api';
 
 /** A bank-synced account: the only kind loan details can be attached to. */
-const createSyncedAccount = async (): Promise<string> => {
+const createSyncedAccount = async (): Promise<{ accountId: string; connectionId: string }> => {
   const { connectionId } = await helpers.bankDataProviders.connectProvider({
     providerType: BANK_PROVIDER_TYPE.SIMPLEFIN,
     credentials: { setupToken: VALID_SIMPLEFIN_SETUP_TOKEN },
@@ -18,12 +24,12 @@ const createSyncedAccount = async (): Promise<string> => {
     accountExternalIds: [SIMPLEFIN_ACCOUNT_1],
     raw: true,
   });
-  return syncedAccounts[0]!.id;
+  return { accountId: syncedAccounts[0]!.id, connectionId };
 };
 
 describe('POST /loans/attach', () => {
   it('adds loan details to a synced account and leaves its balance to the bank', async () => {
-    const accountId = await createSyncedAccount();
+    const { accountId } = await createSyncedAccount();
     const before = await helpers.getAccount({ id: accountId, raw: true });
     expect(before.type).not.toBe(ACCOUNT_TYPES.system);
 
@@ -58,7 +64,7 @@ describe('POST /loans/attach', () => {
   });
 
   it('rejects an account that already has loan details', async () => {
-    const accountId = await createSyncedAccount();
+    const { accountId } = await createSyncedAccount();
     await helpers.attachLoan({ payload: helpers.buildAttachLoanPayload({ accountId }), raw: true });
 
     const second = await helpers.attachLoan({
@@ -79,7 +85,7 @@ describe('POST /loans/attach', () => {
   });
 
   it('rejects an invalid loan field', async () => {
-    const accountId = await createSyncedAccount();
+    const { accountId } = await createSyncedAccount();
 
     const result = await helpers.attachLoan({
       payload: helpers.buildAttachLoanPayload({ accountId, interestRate: -1 }),
@@ -89,9 +95,60 @@ describe('POST /loans/attach', () => {
     expect(result.statusCode).toBe(422);
   });
 
+  describe('after the account stops being synced', () => {
+    // Each of these turns the account into a manual one (type `system`); the loan
+    // must keep reading its balance as the bank's last report.
+    const ways: Array<[string, (args: { accountId: string; connectionId: string }) => Promise<unknown>]> = [
+      [
+        'unlinked from the bank',
+        ({ accountId }) => helpers.unlinkAccountFromBankConnection({ id: accountId, raw: true }),
+      ],
+      [
+        'archived',
+        ({ accountId }) =>
+          helpers.updateAccount({ id: accountId, payload: { status: ACCOUNT_STATUSES.archived }, raw: true }),
+      ],
+      [
+        'left behind by a disconnected connection',
+        ({ connectionId }) => helpers.bankDataProviders.disconnectProvider({ connectionId, raw: true }),
+      ],
+    ];
+
+    it.each(ways)('the loan keeps the bank balance and its details when the account is %s', async (_, act) => {
+      const synced = await createSyncedAccount();
+      const { accountId } = synced;
+      await helpers.attachLoan({ payload: helpers.buildAttachLoanPayload({ accountId }), raw: true });
+      const before = await helpers.getAccount({ id: accountId, raw: true });
+
+      await act(synced);
+
+      const account = await helpers.getAccount({ id: accountId, raw: true });
+      expect(account.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
+      expect(account.currentBalance).toEqual(before.currentBalance);
+      const loan = await helpers.getLoanById({ id: accountId, raw: true });
+      expect(loan.loanDetails.interestRate).toBe(6);
+
+      // Removing the loan drops the details and keeps the account with its history.
+      const removed = await helpers.deleteLoan({ id: accountId, raw: false });
+      expect(removed.statusCode).toBe(204);
+      const kept = await helpers.getAccount({ id: accountId, raw: true });
+      expect(kept.accountCategory).toBe(ACCOUNT_CATEGORIES.general);
+      expect(kept.currentBalance).toEqual(before.currentBalance);
+    });
+  });
+
   describe('on an attached loan', () => {
+    it('has no balance series, because the engine has no anchor to replay', async () => {
+      const { accountId } = await createSyncedAccount();
+      await helpers.attachLoan({ payload: helpers.buildAttachLoanPayload({ accountId }), raw: true });
+
+      const series = await helpers.getLoanBalanceHistory({ id: accountId, raw: true });
+
+      expect(series).toEqual([]);
+    });
+
     it('edits the loan details but refuses a balance correction', async () => {
-      const accountId = await createSyncedAccount();
+      const { accountId } = await createSyncedAccount();
       await helpers.attachLoan({ payload: helpers.buildAttachLoanPayload({ accountId }), raw: true });
 
       const edited = await helpers.updateLoan({ id: accountId, payload: { interestRate: 5.5 }, raw: true });
@@ -102,7 +159,7 @@ describe('POST /loans/attach', () => {
     });
 
     it('removing the loan keeps the synced account and returns it to Uncategorized', async () => {
-      const accountId = await createSyncedAccount();
+      const { accountId } = await createSyncedAccount();
       const before = await helpers.getAccount({ id: accountId, raw: true });
       await helpers.attachLoan({ payload: helpers.buildAttachLoanPayload({ accountId }), raw: true });
 

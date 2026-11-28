@@ -1,24 +1,12 @@
 import {
   ACCOUNT_CATEGORIES,
-  ACCOUNT_TYPES,
   BUDGET_PLAN_ATTACHABLE_ACCOUNT_CATEGORIES,
   DEDICATED_FLOW_ACCOUNT_CATEGORIES,
   GOAL_ELIGIBLE_ACCOUNT_CATEGORIES,
   NET_WORTH_LIABILITY_KINDS,
   getAccountSection,
   isDedicatedFlowAccountCategory,
-  isManagedLoanAccount,
 } from '@bt/shared/types';
-
-describe('isManagedLoanAccount', () => {
-  it('is true only for a hand-kept loan account', () => {
-    const cases = Object.values(ACCOUNT_CATEGORIES).flatMap((accountCategory) =>
-      Object.values(ACCOUNT_TYPES).map((type) => ({ accountCategory, type })),
-    );
-    const managed = cases.filter(isManagedLoanAccount);
-    expect(managed).toEqual([{ accountCategory: ACCOUNT_CATEGORIES.loan, type: ACCOUNT_TYPES.system }]);
-  });
-});
 
 // Pins the lists the account-category registry derives, so moving them onto the
 // registry cannot change which categories each one holds.

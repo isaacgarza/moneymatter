@@ -1,4 +1,9 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, isDedicatedFlowAccountCategory } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_TYPES,
+  LOAN_BALANCE_SOURCE,
+  isDedicatedFlowAccountCategory,
+} from '@bt/shared/types';
 import { roundMoneyValues } from '@common/lib/currency-precision';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -19,9 +24,9 @@ interface AttachLoanParams extends AttachLoanBody {
 
 /**
  * Adds loan details to a bank-synced account and moves it into the `loan`
- * category. The provider keeps owning the balance: the loan engine never writes
- * it (`isManagedLoanAccount` is false for a non-system account), so the details
- * only add the rate, term and projection around it.
+ * category. The provider keeps owning the balance: the details are stored with
+ * `balanceSource: provider`, which keeps the loan engine from writing it, so
+ * they only add the rate, term and projection around it.
  */
 const attachLoanImpl = async (params: AttachLoanParams) => {
   const {
@@ -72,6 +77,7 @@ const attachLoanImpl = async (params: AttachLoanParams) => {
     accountId,
     currencyCode: account.currencyCode,
     loanType,
+    balanceSource: LOAN_BALANCE_SOURCE.provider,
     originalPrincipal,
     minPayment,
     plannedPayment,

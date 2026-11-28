@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, LOAN_BALANCE_SOURCE } from '@bt/shared/types';
 import { roundMoneyValues } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
@@ -85,6 +85,7 @@ const createLoanImpl = async (params: CreateLoanParams) => {
     accountId: account.id,
     currencyCode,
     loanType,
+    balanceSource: LOAN_BALANCE_SOURCE.engine,
     originalPrincipal,
     minPayment,
     plannedPayment,

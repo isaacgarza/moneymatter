@@ -3,7 +3,6 @@ import {
   type LoanPaymentOverpayDetails,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  isManagedLoanAccount,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
@@ -13,6 +12,7 @@ import { findTransactions } from '@models/transactions-query';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { isOnOrAfterAnchorDay } from '@services/loans/anchor-day';
+import { isManagedLoan } from '@services/loans/is-managed-loan';
 import { lockLoanAccountRow, projectLoanOverpay } from '@services/loans/project-loan-overpay';
 import { assertNotInPayment } from '@services/transactions/payment-legs';
 import { updateTransaction } from '@services/transactions/update-transaction';
@@ -45,7 +45,7 @@ const linkLoanPaymentsImpl = async ({
   // Row-lock the loan account so concurrent payment writes serialise against
   // this batch's balance read (same invariant as `assertLoanPaymentAllowed`).
   const loanAccount = await lockLoanAccountRow({ loanAccountId: accountId, userId });
-  if (!loanAccount || !isManagedLoanAccount(loanAccount)) {
+  if (!loanAccount || !(await isManagedLoan({ accountId, accountCategory: loanAccount.accountCategory }))) {
     throw new NotFoundError({ message: t({ key: 'loans.loanNotFound' }) });
   }
 

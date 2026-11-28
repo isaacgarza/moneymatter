@@ -224,20 +224,6 @@ export const isDedicatedFlowAccountCategory = (
   // An unknown category (a newer server value) is not dedicated-flow.
   ACCOUNT_CATEGORY_REGISTRY[category]?.dedicatedFlow ?? false;
 
-/**
- * A loan whose balance the loan engine owns: a `loan` account the user keeps by
- * hand. A provider-synced account in the `loan` category is still a loan for
- * net worth and the UI, but its balance belongs to the provider, so the engine
- * (recompute, payment legs, the write lock) must leave it alone.
- */
-export const isManagedLoanAccount = ({
-  accountCategory,
-  type,
-}: {
-  accountCategory: ACCOUNT_CATEGORIES;
-  type: ACCOUNT_TYPES;
-}): boolean => accountCategory === ACCOUNT_CATEGORIES.loan && type === ACCOUNT_TYPES.system;
-
 /** The section a category's accounts are listed under; an unknown category (a newer server value) lands in `banking`. */
 export const getAccountSection = (category: ACCOUNT_CATEGORIES): AccountSectionId =>
   ACCOUNT_CATEGORY_REGISTRY[category]?.section ?? 'banking';

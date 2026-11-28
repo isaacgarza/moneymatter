@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE, isManagedLoanAccount } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, LOAN_BALANCE_SOURCE, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -20,9 +20,10 @@ const deleteLoanImpl = async ({ userId, accountId }: DeleteLoanParams) => {
     message: t({ key: 'loans.loanNotFound' }),
   });
 
-  // A synced account belongs to its bank connection: only the loan details go,
-  // and the account returns to the fallback category.
-  if (!isManagedLoanAccount(loan.account)) {
+  // A loan the bank reports belongs to an account that is not the loan's to
+  // delete: only the loan details go, and the account returns to the fallback
+  // category, whether or not it is still linked to its connection.
+  if (loan.balanceSource === LOAN_BALANCE_SOURCE.provider) {
     await loan.destroy();
     await Accounts.update({ accountCategory: ACCOUNT_CATEGORIES.general }, { where: { id: accountId, userId } });
     return { id: accountId };

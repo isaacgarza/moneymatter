@@ -1,6 +1,5 @@
 import {
   isTwoLegTransfer,
-  isManagedLoanAccount,
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
   RESOURCE_TYPES,
@@ -27,6 +26,7 @@ import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { assertCurrencyCodesVisible } from '@services/currencies/assert-currency-codes-visible';
 import { dailyImportDetails } from '@services/import-export/core/daily-import-details';
 import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
+import { isManagedLoan } from '@services/loans/is-managed-loan';
 import { applyPayeeCategorization } from '@services/payees/apply-categorization';
 import { applyPayeeDefaultLocation } from '@services/payees/apply-default-location';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
@@ -227,7 +227,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   // caller bug — fail loudly.
   const destAccount = await Accounts.default.findOne({
     where: { id: destinationAccountId, userId: destOwnerUserId },
-    attributes: ['accountCategory', 'type', 'currencyCode', ...SEAM_ACCOUNT_ATTRIBUTES],
+    attributes: ['accountCategory', 'currencyCode', ...SEAM_ACCOUNT_ATTRIBUTES],
   });
   if (!destAccount) {
     throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
@@ -241,7 +241,10 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   if (destAccount.type !== ACCOUNT_TYPES.system && !isBeforeSeam({ account: destAccount, time: transferTime })) {
     throw new ValidationError({ message: manualRowOnBankAccountMessage({ account: destAccount, time: transferTime }) });
   }
-  const isLoanDestination = isManagedLoanAccount(destAccount);
+  const isLoanDestination = await isManagedLoan({
+    accountId: destinationAccountId,
+    accountCategory: destAccount.accountCategory,
+  });
   // A loan payment is an outflow: the base leg is the expense, the auto-created
   // loan-side leg is the income that pays the balance down. An income base
   // would invert both legs and grow the debt — reject it.

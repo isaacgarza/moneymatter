@@ -1,4 +1,4 @@
-import { type LoanEvent, isManagedLoanAccount } from '@bt/shared/types';
+import type { LoanEvent } from '@bt/shared/types';
 import { getBaseCurrencyDecimals, getCurrencyDecimals } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
@@ -10,6 +10,7 @@ import { lockAccountRow } from '@services/accounts/lock-account-row';
 import { measureSpotRefBalance } from '@services/accounts/measure-spot-ref-balance';
 import { withTransaction } from '@services/common/with-transaction';
 import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
+import { isManagedLoan } from '@services/loans/is-managed-loan';
 import { replayLoanOutstanding } from '@services/loans/replay-loan-outstanding';
 import { Op } from 'sequelize';
 
@@ -66,7 +67,9 @@ const recomputeLoanBalanceImpl = async ({
   // lock here is what keeps a concurrent payment write from reading a
   // pre-delete balance and jointly persisting a stale outstanding.
   const account = await lockAccountRow({ accountId: loanAccountId, userId });
-  if (!account || !isManagedLoanAccount(account)) return;
+  if (!account || !(await isManagedLoan({ accountId: loanAccountId, accountCategory: account.accountCategory }))) {
+    return;
+  }
 
   const loanDetails = await LoanDetails.findOne({
     where: { accountId: loanAccountId, userId: account.userId },

@@ -1,4 +1,4 @@
-import type { LoanBalanceHistoryPoint } from '@bt/shared/types';
+import { LOAN_BALANCE_SOURCE, type LoanBalanceHistoryPoint } from '@bt/shared/types';
 import { getCurrencyDecimals } from '@common/lib/currency-precision';
 import { getLoanById } from '@services/loans/get-loan-by-id.service';
 import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
@@ -29,6 +29,13 @@ export const getLoanBalanceHistory = async ({
   if (!account) {
     throw new Error('getLoanBalanceHistory: loanDetails.account is missing — include Accounts in the query');
   }
+
+  // The replay below needs an anchor snapshot and payment legs, which only a loan
+  // the engine owns has: a bank-reported loan's opening balance predates its synced
+  // rows, so replaying it would plot a wrong series.
+  // ceiling: no series for a bank-reported loan. Upgrade trigger: once the loan page
+  // needs a chart for synced loans, build it from the account's own balance history.
+  if (loanDetails.balanceSource === LOAN_BALANCE_SOURCE.provider) return [];
 
   const anchorDate = loanDetails.balanceAnchorDate;
 

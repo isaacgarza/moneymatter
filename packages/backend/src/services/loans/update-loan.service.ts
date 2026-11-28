@@ -1,4 +1,4 @@
-import { type LoanEvent, isManagedLoanAccount } from '@bt/shared/types';
+import { LOAN_BALANCE_SOURCE, type LoanEvent } from '@bt/shared/types';
 import { roundMoneyValues } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
@@ -46,7 +46,7 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
 
   // A synced loan's balance comes from the provider; a correction would re-anchor
   // a balance the engine does not own.
-  if (requestedCurrentBalance !== undefined && !isManagedLoanAccount(loan.account)) {
+  if (requestedCurrentBalance !== undefined && loan.balanceSource === LOAN_BALANCE_SOURCE.provider) {
     throw new ValidationError({ message: t({ key: 'loans.balanceOwnedByProvider' }) });
   }
 

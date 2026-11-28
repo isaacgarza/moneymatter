@@ -1,3 +1,4 @@
+import type { LOAN_BALANCE_SOURCE } from '@bt/shared/types';
 import type { Money } from '@common/types/money';
 import LoanDetails from '@models/loan-details.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
@@ -10,6 +11,7 @@ interface CreateLoanDetailsParams {
   accountId: string;
   currencyCode: string;
   loanType: CreateLoanBody['loanType'];
+  balanceSource: LOAN_BALANCE_SOURCE;
   /** Amounts arrive already rounded to the account currency's decimals. */
   originalPrincipal: Money;
   minPayment: Money | null;
@@ -61,6 +63,7 @@ export const createLoanDetails = async (params: CreateLoanDetailsParams) => {
     accountId,
     userId,
     loanType: params.loanType,
+    balanceSource: params.balanceSource,
     originalPrincipal,
     refOriginalPrincipal,
     interestRate: params.interestRate,

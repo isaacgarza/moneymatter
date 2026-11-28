@@ -1,4 +1,4 @@
-import { LOAN_TYPE, type LoanEvent, RecordId } from '@bt/shared/types';
+import { LOAN_BALANCE_SOURCE, LOAN_TYPE, type LoanEvent, RecordId } from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
@@ -36,6 +36,14 @@ export default class LoanDetails extends Model {
     validate: { isIn: [Object.values(LOAN_TYPE)] },
   })
   loanType!: LOAN_TYPE;
+
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: false,
+    defaultValue: LOAN_BALANCE_SOURCE.engine,
+    validate: { isIn: [Object.values(LOAN_BALANCE_SOURCE)] },
+  })
+  balanceSource!: LOAN_BALANCE_SOURCE;
 
   @MoneyField()
   declare originalPrincipal: Money;
