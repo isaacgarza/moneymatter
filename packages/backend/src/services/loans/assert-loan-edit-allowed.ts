@@ -1,4 +1,9 @@
-import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, isTwoLegTransfer } from '@bt/shared/types';
+import {
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  isManagedLoanAccount,
+  isTwoLegTransfer,
+} from '@bt/shared/types';
 import type { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
@@ -92,12 +97,12 @@ export const assertLoanEditAllowed = async ({
       // `updateTransferTransaction`'s currency lookup on a re-point.
       const destAccount = await Accounts.default.findOne({
         where: { id: destinationAccountId },
-        attributes: ['accountCategory', 'currencyCode'],
+        attributes: ['accountCategory', 'type', 'currencyCode'],
       });
       if (!destAccount) {
         throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
       }
-      const isLoanDestination = destAccount.accountCategory === ACCOUNT_CATEGORIES.loan;
+      const isLoanDestination = isManagedLoanAccount(destAccount);
 
       if (effectiveNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan && !isLoanDestination) {
         throw new ValidationError({

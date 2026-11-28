@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, type LoanEvent } from '@bt/shared/types';
+import { type LoanEvent, isManagedLoanAccount } from '@bt/shared/types';
 import { getBaseCurrencyDecimals, getCurrencyDecimals } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
@@ -66,7 +66,7 @@ const recomputeLoanBalanceImpl = async ({
   // lock here is what keeps a concurrent payment write from reading a
   // pre-delete balance and jointly persisting a stale outstanding.
   const account = await lockAccountRow({ accountId: loanAccountId, userId });
-  if (!account || account.accountCategory !== ACCOUNT_CATEGORIES.loan) return;
+  if (!account || !isManagedLoanAccount(account)) return;
 
   const loanDetails = await LoanDetails.findOne({
     where: { accountId: loanAccountId, userId: account.userId },

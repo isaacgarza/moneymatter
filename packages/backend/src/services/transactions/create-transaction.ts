@@ -1,6 +1,6 @@
 import {
   isTwoLegTransfer,
-  ACCOUNT_CATEGORIES,
+  isManagedLoanAccount,
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
   RESOURCE_TYPES,
@@ -227,7 +227,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   // caller bug — fail loudly.
   const destAccount = await Accounts.default.findOne({
     where: { id: destinationAccountId, userId: destOwnerUserId },
-    attributes: ['accountCategory', 'currencyCode', ...SEAM_ACCOUNT_ATTRIBUTES],
+    attributes: ['accountCategory', 'type', 'currencyCode', ...SEAM_ACCOUNT_ATTRIBUTES],
   });
   if (!destAccount) {
     throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
@@ -241,7 +241,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   if (destAccount.type !== ACCOUNT_TYPES.system && !isBeforeSeam({ account: destAccount, time: transferTime })) {
     throw new ValidationError({ message: manualRowOnBankAccountMessage({ account: destAccount, time: transferTime }) });
   }
-  const isLoanDestination = destAccount.accountCategory === ACCOUNT_CATEGORIES.loan;
+  const isLoanDestination = isManagedLoanAccount(destAccount);
   // A loan payment is an outflow: the base leg is the expense, the auto-created
   // loan-side leg is the income that pays the balance down. An income base
   // would invert both legs and grow the debt — reject it.

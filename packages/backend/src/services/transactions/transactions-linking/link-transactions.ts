@@ -1,6 +1,6 @@
 import {
   LINKED_TRANSFER_NATURES,
-  ACCOUNT_CATEGORIES,
+  isManagedLoanAccount,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
@@ -136,12 +136,12 @@ export const linkTransactions = withTransaction(
         const incomeLeg = base.transactionType === TRANSACTION_TYPES.income ? base : opposite;
         const incomeLegAccount = await Accounts.findOne({
           where: { id: incomeLeg.accountId },
-          attributes: ['accountCategory'],
+          attributes: ['accountCategory', 'type'],
         });
         if (!incomeLegAccount) {
           throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
         }
-        if (incomeLegAccount.accountCategory === ACCOUNT_CATEGORIES.loan) {
+        if (isManagedLoanAccount(incomeLegAccount)) {
           throw new ValidationError({ message: t({ key: 'transactions.loanAccountReadonly' }) });
         }
 
