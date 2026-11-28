@@ -1,14 +1,8 @@
 <template>
   <PageWrapper>
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-      <UiButton variant="ghost" size="sm" class="-ml-2" @click="goBack">
-        <ChevronLeftIcon class="size-4" />
-        {{ $t('loans.detail.backToList') }}
-      </UiButton>
-      <div v-if="loan" class="flex items-center gap-2">
-        <RecordPaymentButton v-if="!loan.projection.isPaidOff" :loan="loan" />
-        <LoanActionsMenu :loan="loan" />
-      </div>
+    <div v-if="loan" class="mb-4 flex flex-wrap items-center justify-end gap-2">
+      <RecordPaymentButton v-if="!loan.projection.isPaidOff" :loan="loan" />
+      <LoanActionsMenu :loan="loan" />
     </div>
 
     <template v-if="loanQuery.isLoading.value">
@@ -112,12 +106,11 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { useLoanById } from '@/composable/data-queries/loans';
-import { ROUTES_NAMES } from '@/routes';
 import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import { useElementSize } from '@vueuse/core';
-import { ChevronDownIcon, ChevronLeftIcon } from '@lucide/vue';
+import { ChevronDownIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 
 import ArchivedBanner from './components/archived-banner.vue';
 import BalanceJourneyChart from './components/balance-journey-chart.vue';
@@ -133,7 +126,6 @@ import SettledBanner from './components/settled-banner.vue';
 import SummaryCard from './components/summary-card.vue';
 
 const route = useRoute();
-const router = useRouter();
 
 const loanId = computed(() => route.params.id as string);
 const loanQuery = useLoanById({ id: loanId });
@@ -155,13 +147,4 @@ const { width: gridWidth } = useElementSize(gridContainerRef);
 const isCompact = computed(() => gridWidth.value > 0 && gridWidth.value < TWO_COLUMN_MIN_WIDTH_PX);
 
 const isChartOpen = ref(false);
-
-const goBack = () => {
-  // Prefer browser back (keeps scroll position); fall back to the list route on direct deep-links.
-  if (window.history.state?.back) {
-    router.back();
-  } else {
-    router.push({ name: ROUTES_NAMES.loans });
-  }
-};
 </script>

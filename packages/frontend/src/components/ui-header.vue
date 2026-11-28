@@ -4,6 +4,10 @@
     <TrialBanner />
     <div class="shadow-header border-border flex items-center justify-between border-b px-4 py-2 sm:px-6">
       <div class="flex items-center gap-4">
+        <Button v-if="canGoBack" size="icon-sm" variant="ghost" :aria-label="$t('header.back')" @click="goBack">
+          <ChevronLeftIcon class="size-4" />
+        </Button>
+
         <template v-if="isMobileView">
           <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
             <Sheet.SheetTrigger as-child>
@@ -94,6 +98,7 @@ import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
 import UserMenu from '@/components/user-menu.vue';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
+import { useBack } from '@/composable/use-back';
 import { useCategorizationStatus } from '@/composable/use-categorization-status';
 import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
 import { useDateLocale } from '@/composable/use-date-locale';
@@ -103,6 +108,7 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { useAccountsStore } from '@/stores';
 import {
   AlertTriangleIcon,
+  ChevronLeftIcon,
   CloudAlertIcon,
   CloudCheckIcon,
   MenuIcon,
@@ -123,6 +129,7 @@ const { elementRef: headerRef } = useCssVarFromElementSize({
 
 const { t } = useI18n();
 const route = useRoute();
+const { canGoBack, goBack } = useBack();
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 const showConfirmDialog = ref(false);
 const isPopoverOpen = ref(false);

@@ -17,7 +17,7 @@ import EventsTimeline from '@/pages/venture/components/events-timeline.vue';
 import MetricsSummary from '@/pages/venture/components/metrics-summary.vue';
 import { ROUTES_NAMES } from '@/routes';
 import type { NonImageLogoPayload } from '@bt/shared/types';
-import { ArrowLeftIcon, PencilIcon, PlusIcon, Trash2Icon } from '@lucide/vue';
+import { PencilIcon, PlusIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -66,16 +66,6 @@ const onDelete = async () => {
 
 <template>
   <div class="@container/venture-deal mx-auto w-full p-4 md:p-6">
-    <div class="mb-6">
-      <router-link
-        :to="{ name: ROUTES_NAMES.venture }"
-        class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors"
-      >
-        <ArrowLeftIcon class="size-4" />
-        <span>{{ $t('venture.deals.backToDeals') }}</span>
-      </router-link>
-    </div>
-
     <div v-if="isPending" class="bg-muted h-40 w-full animate-pulse rounded-md" />
 
     <div v-else-if="deal" class="grid gap-8">

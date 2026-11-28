@@ -8,9 +8,8 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import DesktopOnlyTooltip from '@/components/lib/ui/tooltip/desktop-only-tooltip.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useDeleteVenturePlatform, useVenturePlatforms } from '@/composable/data-queries/venture/platforms';
-import { ROUTES_NAMES } from '@/routes';
 import type { VenturePlatformModel } from '@bt/shared/types';
-import { ArrowLeftIcon, PencilIcon, PlusIcon, RocketIcon, Trash2Icon } from '@lucide/vue';
+import { PencilIcon, PlusIcon, RocketIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -54,16 +53,6 @@ const confirmDelete = async () => {
 
 <template>
   <div class="@container/venture-platforms mx-auto w-full p-4 md:p-6">
-    <div class="mb-6">
-      <router-link
-        :to="{ name: ROUTES_NAMES.venture }"
-        class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors"
-      >
-        <ArrowLeftIcon class="size-4" />
-        <span>{{ $t('venture.deals.backToDeals') }}</span>
-      </router-link>
-    </div>
-
     <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 class="text-3xl leading-tight font-semibold @md/venture-platforms:text-4xl">
