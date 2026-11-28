@@ -1,10 +1,4 @@
-import {
-  TRANSACTION_TYPES,
-  ACCOUNT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  RecordId,
-  isManagedLoanAccount,
-} from '@bt/shared/types';
+import { TRANSACTION_TYPES, ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, RecordId } from '@bt/shared/types';
 import { getCurrencyDecimals } from '@common/lib/currency-precision';
 import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
@@ -12,6 +6,7 @@ import { MoneyField, toMoneyColumnValue } from '@common/types/money-column';
 import { logger } from '@js/utils';
 import { getLinkDayStart, isBeforeSeamStart } from '@services/accounts/seam';
 import { runInSavepoint } from '@services/common/run-in-savepoint';
+import { isManagedLoan } from '@services/loans/is-managed-loan';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { subDays, startOfMonth, startOfDay } from 'date-fns';
 import { Op, UniqueConstraintError } from 'sequelize';
@@ -588,7 +583,7 @@ export default class Balances extends Model {
    * loan's today row.
    */
   static async setTodayRowToSpot({ account }: { account: Accounts }): Promise<void> {
-    if (isManagedLoanAccount(account)) return;
+    if (await isManagedLoan({ accountId: account.id, accountCategory: account.accountCategory })) return;
 
     await this.updateAccountBalance({
       accountId: account.id,

@@ -1,7 +1,8 @@
-import { TRANSACTION_TYPES, isManagedLoanAccount } from '@bt/shared/types';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
+import { isManagedLoan } from '@services/loans/is-managed-loan';
 
 import { withTransaction } from '../common/with-transaction';
 import { lockAccountRow } from './lock-account-row';
@@ -84,7 +85,7 @@ async function updateAccountBalanceForChangedTxImpl({
 
   // Loan balances are recomputed from the anchor snapshot by recomputeLoanBalance,
   // never deltad here — a delta would double-apply and ignore the anchor boundary.
-  if (isManagedLoanAccount(account)) return undefined;
+  if (await isManagedLoan({ accountId: account.id, accountCategory: account.accountCategory })) return undefined;
 
   const newAmount = defineCorrectAmountFromTxType({ amount, transactionType });
   const oldAmount = defineCorrectAmountFromTxType({ amount: prevAmount, transactionType: prevTransactionType });

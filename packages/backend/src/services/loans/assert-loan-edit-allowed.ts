@@ -1,9 +1,4 @@
-import {
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-  isManagedLoanAccount,
-  isTwoLegTransfer,
-} from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, isTwoLegTransfer } from '@bt/shared/types';
 import type { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
@@ -12,6 +7,7 @@ import { findOneTransaction } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
 import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
 import { deriveImpliedDestinationAmount } from '@services/loans/implied-destination-amount';
+import { isManagedLoan } from '@services/loans/is-managed-loan';
 import { type UpdateTransactionParams } from '@services/transactions/types';
 import { Op } from 'sequelize';
 
@@ -97,12 +93,15 @@ export const assertLoanEditAllowed = async ({
       // `updateTransferTransaction`'s currency lookup on a re-point.
       const destAccount = await Accounts.default.findOne({
         where: { id: destinationAccountId },
-        attributes: ['accountCategory', 'type', 'currencyCode'],
+        attributes: ['accountCategory', 'currencyCode'],
       });
       if (!destAccount) {
         throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
       }
-      const isLoanDestination = isManagedLoanAccount(destAccount);
+      const isLoanDestination = await isManagedLoan({
+        accountId: destinationAccountId,
+        accountCategory: destAccount.accountCategory,
+      });
 
       if (effectiveNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan && !isLoanDestination) {
         throw new ValidationError({

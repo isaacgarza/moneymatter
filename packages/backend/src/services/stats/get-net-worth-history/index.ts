@@ -13,6 +13,7 @@ import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { getProviderOwnedLoanIds } from '@services/loans/is-managed-loan';
 import { calculateVehiclesBalanceHistory } from '@services/stats/calculate-vehicles-balance-history';
 import { calculateVentureBalanceHistory } from '@services/stats/calculate-venture-balance-history';
 import { getPerAccountBalanceHistory, toBalanceDateKey } from '@services/stats/get-balance-history';
@@ -257,9 +258,12 @@ export const getNetWorthHistory = async ({
         // Back-fill each loan's pre-anchor days from its opening balance
         // (`refInitialBalance`, immutable on payment) so a payoff dated on the
         // anchor day can't retroactively rewrite the loan balance on earlier days.
+        // A loan a bank reports has no anchor: its `refInitialBalance` is the balance at
+        // connect time, so back-filling from it would flatten the earlier days.
+        const providerLoanIds = await getProviderOwnedLoanIds({ userId });
         const openingMinorByAccount = new Map(
           accounts
-            .filter((a) => a.accountCategory === ACCOUNT_CATEGORIES.loan)
+            .filter((a) => a.accountCategory === ACCOUNT_CATEGORIES.loan && !providerLoanIds.has(a.id))
             .map((a) => [a.id, a.refInitialBalance.toMinorUnits({ decimals })]),
         );
 

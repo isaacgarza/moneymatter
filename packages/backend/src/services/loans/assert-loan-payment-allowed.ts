@@ -1,10 +1,10 @@
-import { isManagedLoanAccount } from '@bt/shared/types';
 import { getCurrencyDecimals } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import LoanDetails from '@models/loan-details.model';
 import { isOnOrAfterAnchorDay } from '@services/loans/anchor-day';
+import { isManagedLoan } from '@services/loans/is-managed-loan';
 import { lockLoanAccountRow, projectLoanOverpay } from '@services/loans/project-loan-overpay';
 
 /**
@@ -46,7 +46,7 @@ export const assertLoanPaymentAllowed = async ({
   if (!loanAccount) {
     throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
   }
-  if (!isManagedLoanAccount(loanAccount)) {
+  if (!(await isManagedLoan({ accountId: loanAccountId, accountCategory: loanAccount.accountCategory }))) {
     throw new ValidationError({
       message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
     });

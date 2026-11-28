@@ -1,4 +1,4 @@
-import { TRANSACTION_TRANSFER_NATURE, isDedicatedFlowAccountCategory } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -6,6 +6,7 @@ import { ForbiddenError, ValidationError } from '@js/errors';
 import Accounts, { isBankLinkedAccount } from '@models/accounts.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import type Transactions from '@models/transactions.model';
+import { hasDerivedBalance } from '@services/loans/is-managed-loan';
 import { Op } from 'sequelize';
 
 export const assertAccountCanHoldPlans = async ({
@@ -16,7 +17,7 @@ export const assertAccountCanHoldPlans = async ({
   callerUserId: number;
 }) => {
   const account = await findOrThrowNotFound({
-    query: Accounts.findOne({ where: { id: accountId }, attributes: ['userId', 'accountCategory'] }),
+    query: Accounts.findOne({ where: { id: accountId }, attributes: ['id', 'userId', 'accountCategory'] }),
     message: t({ key: 'accounts.accountNotFoundForTransaction' }),
   });
 
@@ -24,9 +25,10 @@ export const assertAccountCanHoldPlans = async ({
     throw new ValidationError({ message: t({ key: 'transactions.plannedOwnerOnly' }) });
   }
 
-  // Loan and vehicle balances are replayed from their transactions, which would count a
-  // plan as money that already moved.
-  if (isDedicatedFlowAccountCategory(account.accountCategory)) {
+  // A derived balance (a vehicle, or a loan the engine owns) is replayed from its
+  // transactions, which would count a plan as money that already moved. A loan a
+  // bank reports is an ordinary synced balance and takes plans.
+  if (await hasDerivedBalance({ accountId, accountCategory: account.accountCategory })) {
     throw new ValidationError({ message: t({ key: 'transactions.plannedAccountNotSupported' }) });
   }
 };

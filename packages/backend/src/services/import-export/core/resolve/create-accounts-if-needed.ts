@@ -150,7 +150,7 @@ export async function createAccountsIfNeeded({
         message: t({ key: 'importExport.accountIdNotFound', variables: { id } }),
       });
     }
-    assertNotDerivedBalanceAccount({ account, actionPhrase: 'be an import target' });
+    await assertNotDerivedBalanceAccount({ account, actionPhrase: 'be an import target' });
     assertImportTargetNotBankLinked({ account, allowSeam: allowSeamTargets });
     return account;
   };

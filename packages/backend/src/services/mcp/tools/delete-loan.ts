@@ -8,7 +8,7 @@ export const deleteLoanTool = defineTool({
   toolset: 'loans-vehicles',
   access: 'delete',
   description:
-    'Permanently delete a loan and its account. A loan with recorded payments is refused (get_loans shows paymentsCount): unlink the payments first with unlink_loan_payment. This action is irreversible: confirm with the user before calling.',
+    'Permanently delete a loan and its account. A loan with recorded payments is refused (get_loans shows paymentsCount): unlink the payments first with unlink_loan_payment. A loan attached to a bank-synced account removes only the loan details: the account and its synced history stay. This action is irreversible: confirm with the user before calling.',
   input: {
     loanId: recordId().describe('ID of the loan to delete (from get_loans)'),
   },

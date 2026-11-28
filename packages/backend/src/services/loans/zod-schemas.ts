@@ -103,6 +103,18 @@ export const createLoanBodySchema = z
 export type CreateLoanBody = z.infer<typeof createLoanBodySchema>;
 
 /**
+ * Loan details for an account that already exists (a bank-synced account). The
+ * account owns its name, currency and balance, so none of those are accepted.
+ */
+export const attachLoanBodySchema = z
+  .object(createLoanBodyFields)
+  .omit({ name: true, currencyCode: true, initialBalance: true })
+  .extend({ accountId: recordId() })
+  .transform((body) => toMoneyFields({ body, keys: ['originalPrincipal', 'minPayment', 'plannedPayment'] as const }));
+
+export type AttachLoanBody = z.infer<typeof attachLoanBodySchema>;
+
+/**
  * Patch payload — the service diffs against the persisted row and auto-appends
  * timeline events for interestRate/termMonths/plannedPayment. `currencyCode`
  * and `loanType` are intentionally absent: currency switching is unsupported

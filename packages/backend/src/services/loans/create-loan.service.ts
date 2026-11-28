@@ -1,13 +1,12 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, LOAN_BALANCE_SOURCE } from '@bt/shared/types';
 import { roundMoneyValues } from '@common/lib/currency-precision';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import Accounts, { createAccount as createAccountInDb } from '@models/accounts.model';
-import LoanDetails from '@models/loan-details.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
-import { utcDayKey } from '@services/loans/anchor-day';
+import { createLoanDetails } from '@services/loans/create-loan-details';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 
 import type { CreateLoanBody } from './zod-schemas';
@@ -63,36 +62,6 @@ const createLoanImpl = async (params: CreateLoanParams) => {
     date: now,
   });
 
-  const refOriginalPrincipal = await calculateRefAmount({
-    userId,
-    definitionOwnerUserId: userId,
-    amount: originalPrincipal,
-    baseCode: currencyCode,
-    date: now,
-  });
-
-  const refMinPayment =
-    minPayment === null
-      ? null
-      : await calculateRefAmount({
-          userId,
-          definitionOwnerUserId: userId,
-          amount: minPayment,
-          baseCode: currencyCode,
-          date: now,
-        });
-
-  const refPlannedPayment =
-    plannedPayment === null
-      ? null
-      : await calculateRefAmount({
-          userId,
-          definitionOwnerUserId: userId,
-          amount: plannedPayment,
-          baseCode: currencyCode,
-          date: now,
-        });
-
   const zero = Money.zero();
 
   const account = await createAccountInDb({
@@ -111,28 +80,22 @@ const createLoanImpl = async (params: CreateLoanParams) => {
     throw new ValidationError({ message: t({ key: 'loans.createAccountFailed' }) });
   }
 
-  const created = await LoanDetails.create({
-    accountId: account.id,
+  const created = await createLoanDetails({
     userId,
+    accountId: account.id,
+    currencyCode,
     loanType,
+    balanceSource: LOAN_BALANCE_SOURCE.engine,
     originalPrincipal,
-    refOriginalPrincipal,
+    minPayment,
+    plannedPayment,
     interestRate,
     termMonths,
     startDate,
-    // Anchor defaults to the creation date — the outstanding balance snapshot is
-    // true as-of when the loan was entered into the system. The UTC calendar day
-    // is used so the anchor matches how the SQL `DATE("time")` payment filter
-    // classifies same-day legs on non-UTC servers.
-    balanceAnchorDate: utcDayKey({ date: now }),
-    minPayment,
-    refMinPayment,
-    plannedPayment,
-    refPlannedPayment,
     paymentDayOfMonth,
     lenderName,
     accountNumber,
-    events: [],
+    now,
   });
 
   // Pull the Account association onto the freshly-created instance so the

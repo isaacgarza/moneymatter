@@ -101,7 +101,7 @@ async function executeImportImpl({
       message: `Account with ID ${accountId} not found`,
     });
   }
-  assertNotDerivedBalanceAccount({ account, actionPhrase: 'be an import target' });
+  await assertNotDerivedBalanceAccount({ account, actionPhrase: 'be an import target' });
   assertImportTargetNotBankLinked({ account, allowSeam: true });
   const seamStart = getSeamStart({ account });
 

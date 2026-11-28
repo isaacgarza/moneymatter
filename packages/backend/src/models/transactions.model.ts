@@ -16,7 +16,7 @@ import {
   TransactionDeletionReason,
   TransactionLocation,
   TransactionModel,
-  isManagedLoanAccount,
+  LOAN_BALANCE_SOURCE,
 } from '@bt/shared/types';
 import { CURRENCY_CODE_MAX_LENGTH } from '@common/lib/currency-code-columns';
 import { roundTransactionMoney } from '@common/lib/round-transaction-money';
@@ -562,18 +562,19 @@ export default class Transactions extends Model {
     }
 
     const account = await Accounts.findByPk(instance.accountId, {
-      attributes: ['accountCategory', 'type'],
+      attributes: ['accountCategory'],
     });
-    // Orphan accountIds are rejected by FK validation; only managed loans are locked down here.
-    if (!account || !isManagedLoanAccount(account)) return;
+    // Orphan accountIds are rejected by FK validation; only loans are locked down here.
+    if (account?.accountCategory !== ACCOUNT_CATEGORIES.loan) return;
 
     // Enforcement applies only to managed loans; the sidecar lookup runs solely
     // for loan-category accounts, keeping it off the hot path of ordinary writes.
+    // A loan whose balance a bank connection reports takes ordinary synced rows.
     const loanDetails = await LoanDetails.findOne({
       where: { accountId: instance.accountId },
-      attributes: ['id'],
+      attributes: ['balanceSource'],
     });
-    if (!loanDetails) return;
+    if (!loanDetails || loanDetails.balanceSource === LOAN_BALANCE_SOURCE.provider) return;
 
     throw new ValidationError({
       message: t({ key: 'transactions.loanAccountReadonly' }),

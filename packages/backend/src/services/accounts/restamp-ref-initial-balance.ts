@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, isDedicatedFlowAccountCategory } from '@bt/shared/types';
+import { ACCOUNT_TYPES } from '@bt/shared/types';
 import type { Money } from '@common/types/money';
 import { ExchangeRateUnavailableError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -6,6 +6,7 @@ import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import { findOneTransaction } from '@models/transactions-query';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { hasDerivedBalance } from '@services/loans/is-managed-loan';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -83,7 +84,7 @@ async function restampRefInitialBalanceImpl({
   if (!account) return 'skipped';
   if (
     (account.type !== ACCOUNT_TYPES.system && !allowProviderAccount) ||
-    isDedicatedFlowAccountCategory(account.accountCategory)
+    (await hasDerivedBalance({ accountId: account.id, accountCategory: account.accountCategory }))
   ) {
     return 'skipped';
   }

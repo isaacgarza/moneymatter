@@ -80,7 +80,7 @@ export const linkAccountToBankConnection = withTransaction(
   }: LinkAccountToBankConnectionPayload): Promise<LinkResult> => {
     const account = assertLinkable({ account: await getAccountById({ id: accountId, userId }), accountId });
 
-    assertNotDerivedBalanceAccount({ account, actionPhrase: 'be linked to a bank connection' });
+    await assertNotDerivedBalanceAccount({ account, actionPhrase: 'be linked to a bank connection' });
 
     const bankConnection = await BankDataProviderConnections.findOne({
       where: {

@@ -16,6 +16,18 @@ export enum LOAN_TYPE {
   other = 'other',
 }
 
+/**
+ * Who owns a loan's balance, recorded on `LoanDetails.balanceSource`. `engine`: the
+ * loan engine derives it from the anchor snapshot and payment legs. `provider`: a
+ * bank connection reports it and the engine leaves it alone. Stored on the loan,
+ * not read from the account type, because unlinking or archiving a synced account
+ * changes its type while the balance it holds stays the provider's last report.
+ */
+export enum LOAN_BALANCE_SOURCE {
+  engine = 'engine',
+  provider = 'provider',
+}
+
 /** Subset of `LOAN_TYPE` the form picker exposes; HELOC-style types need multi-disbursement support first. */
 export const SUPPORTED_LOAN_TYPES = [
   LOAN_TYPE.mortgage,
@@ -154,6 +166,8 @@ export type LoanProjection = PaidOffLoanProjection | StalledLoanProjection | Amo
 export interface LoanDetailsApiResponse {
   id: RecordId;
   loanType: LOAN_TYPE;
+  /** `provider`: the bank reports the balance, so payments and balance corrections are not available. */
+  balanceSource: LOAN_BALANCE_SOURCE;
   originalPrincipal: number;
   refOriginalPrincipal: number;
   interestRate: number;

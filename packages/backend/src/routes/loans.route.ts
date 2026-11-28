@@ -1,4 +1,5 @@
 import appendNoteEvent from '@controllers/loans/append-note-event';
+import attachLoan from '@controllers/loans/attach-loan';
 import createLoan from '@controllers/loans/create-loan';
 import deleteLoan from '@controllers/loans/delete-loan';
 import getBalanceHistory from '@controllers/loans/get-balance-history';
@@ -19,6 +20,7 @@ router.get('/', getLoans);
 router.get('/:id', getLoanById);
 router.get('/:id/balance-history', getBalanceHistory);
 router.post('/', checkBaseCurrencyLock, createLoan);
+router.post('/attach', checkBaseCurrencyLock, attachLoan);
 router.patch('/:id', checkBaseCurrencyLock, updateLoan);
 router.delete('/:id', checkBaseCurrencyLock, deleteLoan);
 router.post('/:id/events', checkBaseCurrencyLock, appendNoteEvent);

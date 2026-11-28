@@ -1,10 +1,11 @@
-import { TRANSACTION_TRANSFER_NATURE, isManagedLoanAccount } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { findOneTransaction, findTransactions } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
 import { lockAccountRow } from '@services/accounts/lock-account-row';
 import { withTransaction } from '@services/common/with-transaction';
+import { isManagedLoan } from '@services/loans/is-managed-loan';
 
 interface UnlinkLoanPaymentParams {
   userId: number;
@@ -26,7 +27,7 @@ const unlinkLoanPaymentImpl = async ({ userId, accountId, transactionId }: Unlin
   // payment writes (same invariant as `linkLoanPayments`). Removing a payment
   // only moves the balance further from zero, so there's no overpay check.
   const loanAccount = await lockAccountRow({ accountId, userId });
-  if (!loanAccount || !isManagedLoanAccount(loanAccount)) {
+  if (!loanAccount || !(await isManagedLoan({ accountId, accountCategory: loanAccount.accountCategory }))) {
     throw new NotFoundError({ message: t({ key: 'loans.loanNotFound' }) });
   }
 
