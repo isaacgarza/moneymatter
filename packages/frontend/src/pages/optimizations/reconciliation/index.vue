@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { Button } from '@/components/lib/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { ROUTES_NAMES } from '@/routes';
-import { ArrowLeftIcon } from '@lucide/vue';
 import { useElementSize } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -48,14 +44,6 @@ const isMobileMode = computed(() => pageWidth.value > 0 && pageWidth.value < MOB
     class="flex h-[calc(100dvh-var(--header-height))] min-h-0 flex-col gap-3 overflow-hidden p-4 max-md:h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] md:p-6"
   >
     <div class="flex h-8 shrink-0 items-center gap-2">
-      <DesktopOnlyTooltip :content="$t('optimizations.backToOptimizations')">
-        <Button variant="ghost" size="icon-sm" class="text-muted-foreground -ml-1 shrink-0" as-child>
-          <RouterLink :to="{ name: ROUTES_NAMES.optimizations }" :aria-label="$t('optimizations.backToOptimizations')">
-            <ArrowLeftIcon class="size-4" />
-          </RouterLink>
-        </Button>
-      </DesktopOnlyTooltip>
-
       <h1 class="truncate text-xl font-bold tracking-tight">
         {{ $t('optimizations.reconciliation.title') }}
       </h1>

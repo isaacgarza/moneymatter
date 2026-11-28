@@ -32,15 +32,6 @@
     <template v-else-if="connectionDetails">
       <div class="@container/connection">
         <div class="flex items-center gap-3">
-          <UiButton
-            variant="ghost"
-            size="icon-sm"
-            :aria-label="$t('pages.integrations.details.error.backButton')"
-            @click="router.push({ name: ROUTES_NAMES.accounts })"
-          >
-            <ArrowLeftIcon class="size-4" />
-          </UiButton>
-
           <BankConnectionLogo
             :connection-id="connectionId"
             :alt="connectionDetails.providerName"

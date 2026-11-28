@@ -11,17 +11,6 @@
     <template v-else>
       <!-- Header Section with improved layout -->
       <div class="mb-8">
-        <!-- Back button row -->
-        <div class="mb-4">
-          <router-link
-            :to="{ name: ROUTES_NAMES.investments }"
-            class="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm transition-colors"
-          >
-            <ChevronLeftIcon class="size-4" />
-            <span>{{ $t('portfolioDetail.backToInvestments') }}</span>
-          </router-link>
-        </div>
-
         <!-- Title and Actions row -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center gap-3">
@@ -110,7 +99,7 @@ import { usePortfolio, useUpdatePortfolio } from '@/composable/data-queries/port
 import { isResourceMissingError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes/constants';
 import type { NonImageLogoPayload } from '@bt/shared/types';
-import { AlertCircleIcon, ChevronLeftIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
+import { AlertCircleIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 

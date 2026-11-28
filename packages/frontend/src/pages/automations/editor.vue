@@ -23,15 +23,7 @@ import {
   type AutomationRefType,
   type RecordId,
 } from '@bt/shared/types';
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  HistoryIcon,
-  Loader2Icon,
-  PlayIcon,
-  WandSparklesIcon,
-  ZapIcon,
-} from '@lucide/vue';
+import { ArrowRightIcon, HistoryIcon, Loader2Icon, PlayIcon, WandSparklesIcon, ZapIcon } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
@@ -224,13 +216,6 @@ const confirmLeave = () => {
 <template>
   <div class="flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6">
     <div class="@container/editor-head flex items-center gap-3">
-      <DesktopOnlyTooltip :content="$t('automations.editor.back')">
-        <router-link :to="{ name: ROUTES_NAMES.automations }">
-          <Button as="span" variant="ghost" size="icon-sm" :aria-label="$t('automations.editor.back')">
-            <ArrowLeftIcon class="size-4" />
-          </Button>
-        </router-link>
-      </DesktopOnlyTooltip>
       <h1 class="min-w-0 truncate text-2xl font-bold tracking-tight">
         {{ isCreate ? $t('automations.editor.titleNew') : $t('automations.editor.titleEdit') }}
       </h1>

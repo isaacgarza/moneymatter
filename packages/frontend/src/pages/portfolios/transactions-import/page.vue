@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import BackLink from '@/components/common/back-link.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import { usePortfolio } from '@/composable/data-queries/portfolios';
@@ -89,10 +88,6 @@ function onImported() {
 
 <template>
   <PageWrapper class="pt-4">
-    <BackLink :to="{ name: ROUTES_NAMES.portfolioDetail, params: { portfolioId } }">
-      {{ $t('investmentsImport.backToPortfolio') }}
-    </BackLink>
-
     <div class="mb-6">
       <h1 class="text-2xl tracking-wider">{{ $t('investmentsImport.title') }}</h1>
       <p class="text-muted-foreground mt-2 text-sm sm:text-base">

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import BackLink from '@/components/common/back-link.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -210,8 +209,6 @@ const chipClass = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-
 
 <template>
   <PageWrapper>
-    <BackLink :to="{ name: ROUTES_NAMES.goals }">{{ $t('goals.details.backToList') }}</BackLink>
-
     <ResourceNotFound
       v-if="isNotFound"
       :title="$t('goals.details.notFound.title')"

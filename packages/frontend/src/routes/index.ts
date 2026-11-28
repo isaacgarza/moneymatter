@@ -39,7 +39,11 @@ const routes: RouteRecordRaw[] = [
         path: '/account/:id',
         name: ROUTES_NAMES.account,
         component: () => import('@/pages/account/account.vue'),
-        meta: { navSection: 'accounts', i18nChunks: ['pages/account', 'pages/transactions'] },
+        meta: {
+          navSection: 'accounts',
+          parent: ROUTES_NAMES.accounts,
+          i18nChunks: ['pages/account', 'pages/transactions'],
+        },
       },
       {
         path: '/accounts/vehicles/:id',
@@ -47,6 +51,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/accounts/vehicle-details.vue'),
         meta: {
           navSection: 'accounts',
+          parent: ROUTES_NAMES.accounts,
           i18nChunks: ['pages/accounts', 'pages/account', 'pages/transactions'],
         },
       },
@@ -58,7 +63,7 @@ const routes: RouteRecordRaw[] = [
         path: '/accounts/integrations/:connectionId',
         name: ROUTES_NAMES.accountIntegrationDetails,
         component: () => import('@/pages/accounts/integrations/details.vue'),
-        meta: { navSection: 'accounts', i18nChunks: ['pages/account-integrations'] },
+        meta: { navSection: 'accounts', parent: ROUTES_NAMES.accounts, i18nChunks: ['pages/account-integrations'] },
       },
       {
         path: '/bank-callback',
@@ -76,7 +81,7 @@ const routes: RouteRecordRaw[] = [
         path: '/loans/:id',
         name: ROUTES_NAMES.loanDetail,
         component: () => import('@/pages/loans/detail.vue'),
-        meta: { navSection: 'loans', i18nChunks: ['pages/loans', 'pages/transactions'] },
+        meta: { navSection: 'loans', parent: ROUTES_NAMES.loans, i18nChunks: ['pages/loans', 'pages/transactions'] },
       },
       {
         path: '/investments',
@@ -90,6 +95,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/portfolios/portfolio-detail.vue'),
         meta: {
           navSection: 'investments',
+          parent: ROUTES_NAMES.investments,
           i18nChunks: ['pages/portfolio-detail', 'pages/investments', 'pages/transactions'],
         },
       },
@@ -99,6 +105,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/portfolios/transactions-import/page.vue'),
         meta: {
           navSection: 'investments',
+          parent: ROUTES_NAMES.portfolioDetail,
           i18nChunks: ['pages/investments-import', 'pages/portfolio-detail'],
         },
       },
@@ -112,13 +119,17 @@ const routes: RouteRecordRaw[] = [
         path: '/venture/platforms',
         name: ROUTES_NAMES.venturePlatformsList,
         component: () => import('@/pages/venture/platforms.vue'),
-        meta: { navSection: 'investments', i18nChunks: ['pages/venture'] },
+        meta: { navSection: 'investments', parent: ROUTES_NAMES.venture, i18nChunks: ['pages/venture'] },
       },
       {
         path: '/venture/deals/:dealId',
         name: ROUTES_NAMES.ventureDealDetail,
         component: () => import('@/pages/venture/deal-detail.vue'),
-        meta: { navSection: 'investments', i18nChunks: ['pages/venture', 'pages/transactions'] },
+        meta: {
+          navSection: 'investments',
+          parent: ROUTES_NAMES.venture,
+          i18nChunks: ['pages/venture', 'pages/transactions'],
+        },
       },
       {
         path: '/analytics',
@@ -224,7 +235,7 @@ const routes: RouteRecordRaw[] = [
         path: '/goals/:goalId',
         name: ROUTES_NAMES.goalDetails,
         component: () => import('@/pages/goals/goal-details.vue'),
-        meta: { navSection: 'planned', i18nChunks: ['pages/goals'] },
+        meta: { navSection: 'planned', parent: ROUTES_NAMES.goals, i18nChunks: ['pages/goals'] },
       },
       // Backward-compat redirects for the old /planned/subscriptions URLs, so links
       // already sent (e.g. payment reminder emails) still resolve after the rename
@@ -252,13 +263,13 @@ const routes: RouteRecordRaw[] = [
         path: '/transactions/trash',
         name: ROUTES_NAMES.transactionsTrash,
         component: () => import('@/pages/transactions-trash/index.vue'),
-        meta: { navSection: 'transactions', i18nChunks: ['pages/transactions'] },
+        meta: { navSection: 'transactions', parent: ROUTES_NAMES.transactions, i18nChunks: ['pages/transactions'] },
       },
       {
         path: '/transaction-groups',
         name: ROUTES_NAMES.transactionGroups,
         component: () => import('@/pages/transaction-groups/index.vue'),
-        meta: { navSection: 'transactions', i18nChunks: ['pages/transactions'] },
+        meta: { navSection: 'transactions', parent: ROUTES_NAMES.transactions, i18nChunks: ['pages/transactions'] },
       },
       {
         path: '/transactions/optimizations',
@@ -266,6 +277,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/optimizations/index.vue'),
         meta: {
           navSection: 'transactions',
+          parent: ROUTES_NAMES.transactions,
           i18nChunks: ['pages/optimizations', 'pages/automations', 'pages/transactions'],
         },
       },
@@ -275,6 +287,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/optimizations/transfers/index.vue'),
         meta: {
           navSection: 'transactions',
+          parent: ROUTES_NAMES.optimizations,
           i18nChunks: ['pages/optimizations', 'pages/transactions'],
         },
       },
@@ -284,6 +297,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/optimizations/ai-categorization/index.vue'),
         meta: {
           navSection: 'transactions',
+          parent: ROUTES_NAMES.optimizations,
           i18nChunks: ['pages/optimizations', 'pages/transactions'],
         },
       },
@@ -293,6 +307,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/optimizations/reconciliation/index.vue'),
         meta: {
           navSection: 'transactions',
+          parent: ROUTES_NAMES.optimizations,
           i18nChunks: ['pages/optimizations', 'pages/transactions'],
         },
       },
@@ -300,19 +315,19 @@ const routes: RouteRecordRaw[] = [
         path: '/transactions/automations',
         name: ROUTES_NAMES.automations,
         component: () => import('@/pages/automations/index.vue'),
-        meta: { navSection: 'transactions', i18nChunks: ['pages/automations'] },
+        meta: { navSection: 'transactions', parent: ROUTES_NAMES.optimizations, i18nChunks: ['pages/automations'] },
       },
       {
         path: '/transactions/automations/new',
         name: ROUTES_NAMES.automationCreate,
         component: () => import('@/pages/automations/editor.vue'),
-        meta: { navSection: 'transactions', i18nChunks: ['pages/automations'] },
+        meta: { navSection: 'transactions', parent: ROUTES_NAMES.automations, i18nChunks: ['pages/automations'] },
       },
       {
         path: '/transactions/automations/:id',
         name: ROUTES_NAMES.automationDetails,
         component: () => import('@/pages/automations/editor.vue'),
-        meta: { navSection: 'transactions', i18nChunks: ['pages/automations'] },
+        meta: { navSection: 'transactions', parent: ROUTES_NAMES.automations, i18nChunks: ['pages/automations'] },
       },
       {
         path: '/settings',
