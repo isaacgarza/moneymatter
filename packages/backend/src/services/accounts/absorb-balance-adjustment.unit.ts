@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, LOAN_BALANCE_SOURCE } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { Money } from '@common/types/money';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -13,6 +13,11 @@ jest.mock('@models/accounts.model', () => ({
   __esModule: true,
   default: { findOne: jest.fn() },
   updateAccountById: jest.fn(),
+}));
+// The derived-balance guard asks the loan's details who owns a loan balance.
+jest.mock('@models/loan-details.model', () => ({
+  __esModule: true,
+  default: { findOne: jest.fn() },
 }));
 // The service re-derives `refCurrentBalance` as a spot conversion of the shifted
 // native balance. The default implementation (set in beforeEach) converts 1:1,
@@ -66,6 +71,7 @@ jest.mock('@models/connection', () => ({
 /* eslint-disable import/first */
 import Accounts, * as AccountsModel from '@models/accounts.model';
 import Balances from '@models/balances.model';
+import LoanDetails from '@models/loan-details.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { absorbBalanceAdjustment } from './absorb-balance-adjustment';
@@ -77,6 +83,7 @@ const updateAccountByIdMock = jest.mocked(AccountsModel.updateAccountById);
 const calculateRefAmountMock = jest.mocked(calculateRefAmount);
 const restampMock = jest.mocked(restampRefInitialBalance);
 const setTodayRowToSpotMock = jest.mocked(Balances.setTodayRowToSpot);
+const loanDetailsFindOneMock = jest.mocked(LoanDetails.findOne);
 
 type AccountRow = InstanceType<typeof Accounts>;
 
@@ -141,6 +148,8 @@ const lastUpdatePayload = (): UpdatePayload => updateAccountByIdMock.mock.calls[
 beforeEach(() => {
   jest.clearAllMocks();
   findOneMock.mockResolvedValue(null as never);
+  // Default: no loan details row, so a loan-category account is one the engine owns.
+  loanDetailsFindOneMock.mockResolvedValue(null as never);
   // Default: the update succeeds and echoes a distinct sentinel so tests can
   // assert the service returns the written row (not the pre-update read).
   updateAccountByIdMock.mockResolvedValue({ id: 'updated-sentinel' } as never);
@@ -417,6 +426,23 @@ describe('absorbBalanceAdjustment', () => {
       expect(setTodayRowToSpotMock).not.toHaveBeenCalled();
     },
   );
+
+  it('adjusts a loan whose balance the bank reports, which the loan engine does not own', async () => {
+    const accountId = generateRandomRecordId();
+    findOneMock.mockResolvedValue(
+      buildAccount({
+        id: accountId,
+        name: 'Mortgage',
+        type: ACCOUNT_TYPES.monobank,
+        accountCategory: ACCOUNT_CATEGORIES.loan,
+      }) as never,
+    );
+    loanDetailsFindOneMock.mockResolvedValue({ balanceSource: LOAN_BALANCE_SOURCE.provider } as never);
+
+    await absorbBalanceAdjustment({ userId: USER_ID, accountId, amountDelta: Money.fromDecimal(10) });
+
+    expect(updateAccountByIdMock).toHaveBeenCalledTimes(1);
+  });
 
   it('throws ValidationError when the update returns falsy', async () => {
     const accountId = generateRandomRecordId();
