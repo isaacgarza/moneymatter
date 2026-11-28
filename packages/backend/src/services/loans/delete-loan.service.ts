@@ -1,7 +1,8 @@
-import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE, isManagedLoanAccount } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
+import Accounts from '@models/accounts.model';
 import LoanDetails from '@models/loan-details.model';
 import { countTransactions } from '@models/transactions-query';
 import { deleteAccountById } from '@services/accounts.service';
@@ -14,10 +15,18 @@ interface DeleteLoanParams {
 
 const deleteLoanImpl = async ({ userId, accountId }: DeleteLoanParams) => {
   // Existence + ownership guard; 404 if the loan isn't this user's.
-  await findOrThrowNotFound({
-    query: LoanDetails.findOne({ where: { accountId, userId }, attributes: ['id'] }),
+  const loan = await findOrThrowNotFound({
+    query: LoanDetails.findOne({ where: { accountId, userId }, include: [{ model: Accounts, as: 'account' }] }),
     message: t({ key: 'loans.loanNotFound' }),
   });
+
+  // A synced account belongs to its bank connection: only the loan details go,
+  // and the account returns to the fallback category.
+  if (!isManagedLoanAccount(loan.account)) {
+    await loan.destroy();
+    await Accounts.update({ accountCategory: ACCOUNT_CATEGORIES.general }, { where: { id: accountId, userId } });
+    return { id: accountId };
+  }
 
   // Payment legs are real ledger entries; deleting the loan would orphan them,
   // so they hard-block. Timeline events (corrections, notes) are self-contained

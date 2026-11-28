@@ -307,6 +307,10 @@
   },
   "loans": {
     "loanNotFound": "Loan not found.",
+    "attachRequiresSyncedAccount": "Loan details can only be attached to a bank-synced account. Create a new loan for a manually tracked one.",
+    "attachCategoryNotAllowed": "This account's category cannot hold loan details.",
+    "alreadyALoan": "This account already has loan details.",
+    "balanceOwnedByProvider": "This loan's balance comes from the bank connection and cannot be edited here.",
     "createAccountFailed": "Failed to create loan account",
     "deleteBlockedByPayments": "This loan has recorded payments. Delete the payments before deleting the loan.",
     "linkPaymentsInvalidSelection": "Some selected transactions can't be linked to this loan.",

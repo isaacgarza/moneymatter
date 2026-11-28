@@ -125,6 +125,32 @@ export async function unlinkLoanPayment<R extends boolean | undefined = undefine
   });
 }
 
+export async function attachLoan<R extends boolean | undefined = undefined>({
+  payload,
+  raw,
+}: {
+  payload: Record<string, unknown>;
+  raw?: R;
+}) {
+  return makeRequest<LoanApiResponse, R>({
+    method: 'post',
+    url: '/loans/attach',
+    payload,
+    raw,
+  });
+}
+
+/** Body of POST /loans/attach: the loan fields without the ones the existing account owns. */
+export function buildAttachLoanPayload({ accountId, ...overrides }: { accountId: string } & Record<string, unknown>) {
+  const {
+    name: _name,
+    currencyCode: _currencyCode,
+    initialBalance: _initialBalance,
+    ...fields
+  } = buildCreateLoanPayload();
+  return { ...fields, accountId, ...overrides };
+}
+
 export function buildCreateLoanPayload(overrides: Record<string, unknown> = {}) {
   return {
     name: 'Test loan',
