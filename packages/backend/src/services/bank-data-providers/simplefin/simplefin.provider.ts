@@ -14,14 +14,13 @@ import {
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import { runPendingLinkAbsorb } from '@services/accounts/absorb-link-residual';
+import { absorbLinkResidualWithRateFallback, runPendingLinkAbsorb } from '@services/accounts/absorb-link-residual';
 import { lockLinkedBankAccount } from '@services/accounts/lock-account-row';
 import { BaseBankDataProvider, ProviderAccount, ProviderMetadata } from '@services/bank-data-providers';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { SyncStatus, setAccountSyncStatus, setAccountsSyncStatus } from '../sync/sync-status-tracker';
 import { PROVIDER_TO_ACCOUNT_TYPE } from '../types';
-import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { linkAndEmitSyncedTransactions } from '../utils/link-and-emit-synced-transactions';
 import { persistSyncedTransactions } from '../utils/persist-synced-transactions';
@@ -302,9 +301,10 @@ export class SimplefinProvider extends BaseBankDataProvider {
    * A fetch-level failure (auth / rate-limit) fails every account with the same
    * error and rethrows so the caller logs it.
    *
-   * With `window`, only that range is fetched and each account keeps rows from the window
-   * start or its link day, whichever is later. That load never consumes planned rows, and
-   * it leaves `lastSyncAt` alone since it fetched no recent data.
+   * With `window`, only that range is fetched and each account keeps every row in it, from
+   * before its link day too. The bank owns the balance, so the opening balance is derived
+   * again afterwards (`bank balance - sum of rows`). That load never consumes planned rows,
+   * and it leaves `lastSyncAt` alone since it fetched no recent data.
    */
   async syncConnectionAccounts({
     connectionId,
@@ -344,7 +344,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
           return {
             account,
             matchPlanned: false,
-            createFromDate: clampSyncStartToLink({ account, from: window.from }),
+            createFromDate: window.from,
           };
         }
         const { from, matchPlanned } = await resolveSyncStart({ account, to, backfillDays: INITIAL_BACKFILL_DAYS });
@@ -409,6 +409,14 @@ export class SimplefinProvider extends BaseBankDataProvider {
           }
 
           await runPendingLinkAbsorb({ accountId: account.id, userId });
+          if (window) {
+            await absorbLinkResidualWithRateFallback({
+              accountId: account.id,
+              userId,
+              residualTarget: undefined,
+              forceOpeningBalance: true,
+            });
+          }
           return ids;
         })();
 

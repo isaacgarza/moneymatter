@@ -40,9 +40,19 @@ const sumSignedRealRows = async ({ accountId }: { accountId: string }): Promise<
  * sync force-wrote the bank balance. The bank owns `currentBalance`, so the
  * residual goes where the link's `residualTarget` says: into the opening
  * balance (the default), or into one balance-adjustment row dated at the link.
+ * `forceOpeningBalance` ignores an `adjustment` target: loading older history moves the
+ * opening balance back in time, and a dated adjustment row would not describe that.
  */
 export const absorbLinkResidual = withTransaction(
-  async ({ accountId, userId }: { accountId: string; userId: number }): Promise<LinkResidualOutcome> => {
+  async ({
+    accountId,
+    userId,
+    forceOpeningBalance = false,
+  }: {
+    accountId: string;
+    userId: number;
+    forceOpeningBalance?: boolean;
+  }): Promise<LinkResidualOutcome> => {
     const sequelizeTx = namespace.get('transaction');
 
     // Lock before summing: a concurrent sync blocks on this row lock, so summing
@@ -67,7 +77,7 @@ export const absorbLinkResidual = withTransaction(
 
     const bankConnection = account.externalData?.bankConnection;
     const residualTarget = bankConnection?.balanceReconciliation.residualTarget;
-    if (bankConnection && residualTarget === 'adjustment') {
+    if (!forceOpeningBalance && bankConnection && residualTarget === 'adjustment') {
       const bankBalance = account.currentBalance;
       const adjustment = await createBalanceAdjustmentTransaction({
         userId,
@@ -168,13 +178,15 @@ export const absorbLinkResidualWithRateFallback = async ({
   accountId,
   userId,
   residualTarget,
+  forceOpeningBalance = false,
 }: {
   accountId: string;
   userId: number;
   residualTarget: LinkResidualTarget | undefined;
+  forceOpeningBalance?: boolean;
 }): Promise<LinkResidualOutcome> => {
   try {
-    return await runInSavepoint(() => absorbLinkResidual({ accountId, userId }));
+    return await runInSavepoint(() => absorbLinkResidual({ accountId, userId, forceOpeningBalance }));
   } catch (error) {
     if (!(error instanceof ExchangeRateUnavailableError)) throw error;
     logger.error(

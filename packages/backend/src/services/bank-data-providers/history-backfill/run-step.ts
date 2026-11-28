@@ -10,7 +10,6 @@ import { Op } from 'sequelize';
 
 import { withAccountSyncLock } from '../connection/sync-transactions-for-account';
 import { bankProviderRegistry } from '../registry';
-import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { getHistoryDailyRequestCap } from './daily-cap';
 import { formatDay, type HistoryWindow } from './plan-windows';
 import { requestsLeft } from './request-budget';
@@ -82,25 +81,10 @@ const stepFor = async ({ connectionId, now }: { connectionId: string; now: Date 
     });
   }
 
-  // Windows no account can use, because every account was linked after them, cost no request.
-  let window: HistoryWindow | null = null;
-  let usable: Accounts[] = [];
-  while (state?.loadedFrom && !state.completedAt) {
-    window = nextTarget({ state, windowDays: capability.windowDays });
-    if (!window) break;
-
-    const target: HistoryWindow = window;
-    usable = accounts.filter((account) => clampSyncStartToLink({ account, from: target.from }) < target.to);
-    if (usable.length > 0) break;
-
-    state = await updateHistoryState({
-      connectionId,
-      update: (current) =>
-        current ? applyWindowLoaded({ state: current, window: target, lastError: current.lastError, now }) : current,
-    });
-    window = null;
-  }
-  if (!window || usable.length === 0) return state?.completedAt ? 'complete' : 'skipped';
+  // The link day does not limit depth: a linked account is older than its link, and the bank holds its history.
+  const window =
+    state?.loadedFrom && !state.completedAt ? nextTarget({ state, windowDays: capability.windowDays }) : null;
+  if (!window) return state?.completedAt ? 'complete' : 'skipped';
 
   if (requestsLeft({ requestsAt: state!.requestsAt, now, cap: getHistoryDailyRequestCap() }) === 0) return 'budget';
 
@@ -111,7 +95,7 @@ const stepFor = async ({ connectionId, now }: { connectionId: string; now: Date 
     update: (current) => (current ? applySpend({ state: current, now }) : current),
   });
 
-  const [firstAccountId, ...otherAccountIds] = usable.map((account) => account.id);
+  const [firstAccountId, ...otherAccountIds] = accounts.map((account) => account.id);
   if (!firstAccountId) return 'skipped';
   try {
     const { failedAccountIds } = await withAccountSyncLock({
