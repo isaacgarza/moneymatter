@@ -1,8 +1,7 @@
 <template>
   <Dialog v-model:open="isOpen">
     <!-- The date field would take the focus on open, and iOS Safari shows its date picker for a focused date input. -->
-    <!-- The date field would take the focus on open, and iOS Safari shows its date picker for a focused date input. -->
-    <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
+    <DialogContent class="max-h-[90dvh] overflow-y-auto sm:max-w-lg" @open-auto-focus.prevent>
       <DialogHeader>
         <DialogTitle>{{ $t('pages.integrations.details.history.title') }}</DialogTitle>
         <DialogDescription>{{ $t('pages.integrations.details.history.description') }}</DialogDescription>
@@ -26,6 +25,8 @@
           {{ $t('pages.integrations.details.history.lastError', { message: history.lastError }) }}
         </p>
 
+        <ConnectionHistoryProgress v-if="history" :history="history" :accounts="accounts" />
+
         <DateField
           v-model="startDateValue"
           mode="date"
@@ -33,8 +34,6 @@
           :calendar-options="{ maxDate: today }"
           :disabled="isSaving"
         />
-
-        <p class="text-muted-foreground text-xs">{{ $t('pages.integrations.details.history.forwardOnlyNote') }}</p>
       </div>
 
       <DialogFooter class="gap-2 sm:gap-4">
@@ -71,11 +70,13 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { HISTORY_BADGE_VARIANT } from '../utils/history-status-view';
+import ConnectionHistoryProgress from './connection-history-progress.vue';
 
 const props = defineProps<{
   open: boolean;
   connectionId: string;
   history: BankHistoryStatus | null;
+  accounts: { id: string; name: string }[];
 }>();
 
 const emit = defineEmits<{

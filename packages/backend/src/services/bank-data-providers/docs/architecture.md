@@ -505,6 +505,7 @@ bankHistoryBackfillCron, hourly at :20 → runHistoryStep() per connection with 
 - A window load never consumes planned rows and does not touch `lastSyncAt`.
 - 429 or 403 from the bridge starts a 24 hour cooldown. A window that fails 5 ticks in a row is skipped and the connection shows `attention`; saving the same date again retries it. A held sync lock makes no request and the spend is taken back.
 - The state lives in its own column rather than `metadata` because the auth-failure tracker rewrites the whole `metadata` object, which would undo a concurrent cursor update. `updateHistoryState()` is the only writer and takes the row lock.
+- Progress is kept per account in the same JSONB (`accounts`: pending, loading, loaded or failed, with the date reached, the rows stored and the last error) next to a capped log of the newest 50 events (`events`: window loaded, failed or skipped, cooldown, completed). The connection details return both, so the history dialog shows which accounts are loading, done or failed. A migration clears the cursor of connections that predate this state, so their windows load again; rows dedupe by bank id.
 - Clearing the date stops the load. Rows already loaded are kept.
 
 ---

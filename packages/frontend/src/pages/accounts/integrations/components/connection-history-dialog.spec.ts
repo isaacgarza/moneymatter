@@ -1,4 +1,4 @@
-import { BANK_HISTORY_STATE, type BankHistoryStatus } from '@bt/shared/types';
+import { BANK_HISTORY_ACCOUNT_STATE, BANK_HISTORY_STATE, type BankHistoryStatus } from '@bt/shared/types';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
@@ -29,12 +29,19 @@ const savedHistory: BankHistoryStatus = {
   windowsTotal: 12,
   nextRunAt: null,
   lastError: null,
+  accounts: [],
+  events: [],
 };
+
+const ACCOUNTS = [
+  { id: 'a1', name: 'Wealthfront Checking' },
+  { id: 'a2', name: 'Chase Credit' },
+];
 
 const mountDialog = async ({ history }: { history: BankHistoryStatus | null }) => {
   const wrapper = mount(ConnectionHistoryDialog, {
     attachTo: document.body,
-    props: { open: true, connectionId: 'c1', history },
+    props: { open: true, connectionId: 'c1', history, accounts: ACCOUNTS },
     global: { plugins: [i18n, VueQueryPlugin] },
   });
   for (let i = 0; i < 5; i++) await nextTick();
@@ -82,6 +89,30 @@ describe('connection history dialog', () => {
     const wrapper = await mountDialog({ history: savedHistory });
 
     expect(calendarIsOpen()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('lists every account of the connection with the error of the one that failed', async () => {
+    const wrapper = await mountDialog({
+      history: {
+        ...savedHistory,
+        state: BANK_HISTORY_STATE.running,
+        accounts: [
+          {
+            accountId: 'a2',
+            state: BANK_HISTORY_ACCOUNT_STATE.failed,
+            loadedFrom: null,
+            rowsLoaded: 0,
+            lastError: 'bridge unavailable',
+          },
+        ],
+      },
+    });
+
+    const dialogText = document.querySelector('[role="dialog"]')?.textContent ?? '';
+    expect(dialogText).toContain('Wealthfront Checking');
+    expect(dialogText).toContain('Chase Credit');
+    expect(dialogText).toContain('bridge unavailable');
     wrapper.unmount();
   });
 });
