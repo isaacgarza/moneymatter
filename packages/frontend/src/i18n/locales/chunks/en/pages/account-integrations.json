@@ -369,7 +369,28 @@
           "progress": "{done} of {total} periods loaded",
           "nextRun": "continues {when}",
           "lastError": "Last error: {message}",
-          "forwardOnlyNote": "Accounts linked forward-only can't load transactions from before the day they were linked.",
+          "accounts": {
+            "title": "Accounts"
+          },
+          "accountState": {
+            "pending": "Waiting",
+            "loading": "Loading",
+            "loaded": "Loaded",
+            "failed": "Failed"
+          },
+          "accountReach": "Back to {date}",
+          "accountRows": "{count} transaction loaded | {count} transactions loaded",
+          "accountNotStarted": "Not requested yet",
+          "events": {
+            "title": "Recent activity"
+          },
+          "event": {
+            "windowLoaded": "Loaded {from} to {to} ({count} new)",
+            "windowFailed": "Could not load {from} to {to}, will retry: {message}",
+            "windowSkipped": "Gave up on {from} to {to}: {message}",
+            "cooldown": "The bank asked us to wait a day: {message}",
+            "completed": "History loaded"
+          },
           "notSetUp": "Not set up",
           "strip": {
             "manage": "Manage",

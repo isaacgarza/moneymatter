@@ -369,7 +369,28 @@
           "progress": "Завантажено періодів: {done} з {total}",
           "nextRun": "продовжиться {when}",
           "lastError": "Остання помилка: {message}",
-          "forwardOnlyNote": "Рахунки, підключені лише наперед, не можуть завантажувати транзакції раніше за день підключення.",
+          "accounts": {
+            "title": "Рахунки"
+          },
+          "accountState": {
+            "pending": "Очікує",
+            "loading": "Завантажується",
+            "loaded": "Завантажено",
+            "failed": "Не вдалося"
+          },
+          "accountReach": "До {date}",
+          "accountRows": "Завантажено {count} транзакцію | Завантажено {count} транзакції | Завантажено {count} транзакцій",
+          "accountNotStarted": "Ще не запитано",
+          "events": {
+            "title": "Остання активність"
+          },
+          "event": {
+            "windowLoaded": "Завантажено з {from} до {to} (нових: {count})",
+            "windowFailed": "Не вдалося завантажити з {from} до {to}, буде повторна спроба: {message}",
+            "windowSkipped": "Припинено спроби завантажити з {from} до {to}: {message}",
+            "cooldown": "Банк попросив зачекати добу: {message}",
+            "completed": "Історію завантажено"
+          },
           "notSetUp": "Не налаштовано",
           "strip": {
             "manage": "Керувати",

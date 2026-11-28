@@ -505,7 +505,11 @@ export abstract class BaseBankDataProvider {
     systemAccountIds: string[];
     /** Load exactly this range, for the history load, instead of resuming from each account's newest row. */
     window?: { from: Date; to: Date };
-  }): Promise<{ failedAccountIds: string[] }>;
+  }): Promise<{
+    failedAccountIds: string[];
+    /** Rows this call stored, per account; an account that stored nothing is absent. */
+    createdByAccountId: Record<string, number>;
+  }>;
 
   /**
    * Set only by providers that can load older history in the background. Needs

@@ -379,6 +379,7 @@
       v-model:open="isHistoryDialogOpen"
       :connection-id="connectionId"
       :history="connectionDetails?.history ?? null"
+      :accounts="connectionDetails?.accounts ?? []"
     />
 
     <!-- Reconnect Confirmation Dialog -->

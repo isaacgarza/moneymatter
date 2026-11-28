@@ -316,15 +316,16 @@ export class SimplefinProvider extends BaseBankDataProvider {
     userId: number;
     systemAccountIds: RecordId[];
     window?: { from: Date; to: Date };
-  }): Promise<{ failedAccountIds: string[] }> {
+  }): Promise<{ failedAccountIds: string[]; createdByAccountId: Record<string, number> }> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
     const failedAccountIds: string[] = [];
+    const createdByAccountId: Record<string, number> = {};
     const accounts = await Accounts.findAll({
       where: { id: systemAccountIds, bankDataProviderConnectionId: connectionId },
     });
-    if (accounts.length === 0) return { failedAccountIds };
+    if (accounts.length === 0) return { failedAccountIds, createdByAccountId };
 
     const accountIds = accounts.map((account) => account.id);
     await setAccountsSyncStatus({ accountIds, status: SyncStatus.SYNCING, userId });
@@ -434,6 +435,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
           transactionIds: createdIds,
         });
         logger.info(`[SimpleFIN] Sync: ${createdIds.length} transactions created for account ${account.id}`);
+        createdByAccountId[account.id] = createdIds.length;
 
         await setAccountSyncStatus({ accountId: account.id, status: SyncStatus.COMPLETED, userId });
       } catch (error) {
@@ -446,7 +448,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
 
     if (!window) await this.updateLastSync(connectionId);
 
-    return { failedAccountIds };
+    return { failedAccountIds, createdByAccountId };
   }
 
   /**

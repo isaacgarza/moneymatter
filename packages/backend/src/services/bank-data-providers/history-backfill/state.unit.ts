@@ -1,4 +1,4 @@
-import { BANK_HISTORY_STATE } from '@bt/shared/types';
+import { BANK_HISTORY_ACCOUNT_STATE, BANK_HISTORY_EVENT_KIND, BANK_HISTORY_STATE } from '@bt/shared/types';
 
 import { formatDay, parseDay } from './plan-windows';
 import {
@@ -9,15 +9,25 @@ import {
   applyTopDate,
   applyWindowFailed,
   applyWindowLoaded,
+  applyWindowStarted,
   COOLDOWN_MS,
   type HistoryBackfillState,
+  MAX_EVENTS,
   MAX_WINDOW_ATTEMPTS,
   nextTarget,
   toHistoryStatus,
+  type WindowOutcome,
 } from './state';
 
 const NOW = new Date('2026-06-10T12:00:00.000Z');
 const WINDOW_DAYS = 44;
+
+const outcome = (overrides: Partial<WindowOutcome> = {}): WindowOutcome => ({
+  accountIds: ['acc-1'],
+  failedAccountIds: [],
+  createdByAccountId: {},
+  ...overrides,
+});
 
 const window = ({ from, to }: { from: string; to: string }) => ({
   from: parseDay({ day: from }),
@@ -43,6 +53,8 @@ describe('applyStartDate', () => {
       retry: [],
       lastError: null,
       completedAt: null,
+      accounts: {},
+      events: [],
     });
   });
 
@@ -50,6 +62,7 @@ describe('applyStartDate', () => {
     const finished = applyWindowLoaded({
       state: running({ startDate: '2026-04-20' }),
       window: window({ from: '2026-04-20', to: '2026-05-29' }),
+      outcome: outcome(),
       lastError: null,
       now: NOW,
     });
@@ -80,6 +93,7 @@ describe('applyStartDate', () => {
       state = applyWindowFailed({
         state,
         window: window({ from: '2026-04-15', to: '2026-05-29' }),
+        outcome: outcome(),
         message: 'down',
         now: NOW,
       });
@@ -101,6 +115,7 @@ describe('applyStartDate', () => {
       state = applyWindowFailed({
         state,
         window: window({ from: '2026-04-15', to: '2026-05-29' }),
+        outcome: outcome(),
         message: 'down',
         now: NOW,
       });
@@ -116,6 +131,7 @@ describe('applyStartDate', () => {
       state = applyWindowFailed({
         state,
         window: window({ from: '2026-04-15', to: '2026-05-29' }),
+        outcome: outcome(),
         message: 'down',
         now: NOW,
       });
@@ -141,12 +157,14 @@ describe('applyWindowLoaded', () => {
     const failed = applyWindowFailed({
       state: running(),
       window: window({ from: '2026-04-15', to: '2026-05-29' }),
+      outcome: outcome(),
       message: 'x',
       now: NOW,
     });
     const loaded = applyWindowLoaded({
       state: failed,
       window: window({ from: '2026-04-15', to: '2026-05-29' }),
+      outcome: outcome(),
       lastError: null,
       now: NOW,
     });
@@ -161,6 +179,7 @@ describe('applyWindowLoaded', () => {
     const loaded = applyWindowLoaded({
       state: running({ startDate: '2026-04-20' }),
       window: window({ from: '2026-04-20', to: '2026-05-29' }),
+      outcome: outcome(),
       lastError: null,
       now: NOW,
     });
@@ -172,8 +191,13 @@ describe('applyWindowLoaded', () => {
     const state = { ...running(), loadedFrom: '2026-01-01' };
 
     expect(
-      applyWindowLoaded({ state, window: window({ from: '2026-04-15', to: '2026-05-29' }), lastError: null, now: NOW })
-        .loadedFrom,
+      applyWindowLoaded({
+        state,
+        window: window({ from: '2026-04-15', to: '2026-05-29' }),
+        outcome: outcome(),
+        lastError: null,
+        now: NOW,
+      }).loadedFrom,
     ).toBe('2026-01-01');
   });
 });
@@ -185,6 +209,7 @@ describe('applyWindowFailed', () => {
       state = applyWindowFailed({
         state,
         window: window({ from: '2026-04-15', to: '2026-05-29' }),
+        outcome: outcome(),
         message: 'down',
         now: NOW,
       });
@@ -195,6 +220,7 @@ describe('applyWindowFailed', () => {
     state = applyWindowFailed({
       state,
       window: window({ from: '2026-04-15', to: '2026-05-29' }),
+      outcome: outcome(),
       message: 'down',
       now: NOW,
     });
@@ -208,12 +234,14 @@ describe('applyWindowFailed', () => {
     let state = applyWindowFailed({
       state: running(),
       window: window({ from: '2026-04-15', to: '2026-05-29' }),
+      outcome: outcome(),
       message: 'x',
       now: NOW,
     });
     state = applyWindowFailed({
       state,
       window: window({ from: '2026-03-01', to: '2026-04-15' }),
+      outcome: outcome(),
       message: 'x',
       now: NOW,
     });
@@ -226,7 +254,13 @@ describe('retry windows', () => {
   const giveUp = ({ state, from, to }: { state: HistoryBackfillState; from: string; to: string }) => {
     let next = state;
     for (let attempt = 0; attempt < MAX_WINDOW_ATTEMPTS; attempt++) {
-      next = applyWindowFailed({ state: next, window: window({ from, to }), message: 'down', now: NOW });
+      next = applyWindowFailed({
+        state: next,
+        window: window({ from, to }),
+        outcome: outcome(),
+        message: 'down',
+        now: NOW,
+      });
     }
     return next;
   };
@@ -237,6 +271,7 @@ describe('retry windows', () => {
     const loaded = applyWindowLoaded({
       state: queued,
       window: window({ from: '2026-04-15', to: '2026-05-29' }),
+      outcome: outcome(),
       lastError: null,
       now: NOW,
     });
@@ -326,6 +361,7 @@ describe('toHistoryStatus', () => {
     const after = applyWindowLoaded({
       state: running(),
       window: window({ from: '2026-04-15', to: '2026-05-29' }),
+      outcome: outcome(),
       lastError: null,
       now: NOW,
     });
@@ -344,6 +380,7 @@ describe('toHistoryStatus', () => {
     const finished = applyWindowLoaded({
       state: done,
       window: window({ from: '2026-04-20', to: '2026-05-29' }),
+      outcome: outcome(),
       lastError: null,
       now: NOW,
     });
@@ -381,7 +418,13 @@ describe('toHistoryStatus', () => {
   const giveUp = ({ state, from, to }: { state: HistoryBackfillState; from: string; to: string }) => {
     let next = state;
     for (let attempt = 0; attempt < MAX_WINDOW_ATTEMPTS; attempt++) {
-      next = applyWindowFailed({ state: next, window: window({ from, to }), message: 'down', now: NOW });
+      next = applyWindowFailed({
+        state: next,
+        window: window({ from, to }),
+        outcome: outcome(),
+        message: 'down',
+        now: NOW,
+      });
     }
     return next;
   };
@@ -407,5 +450,173 @@ describe('toHistoryStatus', () => {
       windowsDone: 0,
       windowsTotal: 1,
     });
+  });
+});
+
+describe('per-account progress', () => {
+  const ACCOUNTS = ['acc-1', 'acc-2'];
+  const lastWindow = window({ from: '2026-04-15', to: '2026-05-29' });
+
+  it('marks every account loading when a window is requested', () => {
+    const state = applyWindowStarted({ state: running(), accountIds: ACCOUNTS });
+
+    expect(Object.values(state.accounts).map((progress) => progress.state)).toEqual([
+      BANK_HISTORY_ACCOUNT_STATE.loading,
+      BANK_HISTORY_ACCOUNT_STATE.loading,
+    ]);
+  });
+
+  it('records, per account, the day its history reaches and the rows stored', () => {
+    const state = applyWindowLoaded({
+      state: applyWindowStarted({ state: running(), accountIds: ACCOUNTS }),
+      window: lastWindow,
+      outcome: outcome({ accountIds: ACCOUNTS, createdByAccountId: { 'acc-1': 7 } }),
+      lastError: null,
+      now: NOW,
+    });
+
+    expect(state.accounts).toEqual({
+      'acc-1': { state: BANK_HISTORY_ACCOUNT_STATE.loaded, loadedFrom: '2026-04-15', rowsLoaded: 7, lastError: null },
+      'acc-2': { state: BANK_HISTORY_ACCOUNT_STATE.loaded, loadedFrom: '2026-04-15', rowsLoaded: 0, lastError: null },
+    });
+    expect(state.events).toEqual([
+      expect.objectContaining({
+        kind: BANK_HISTORY_EVENT_KIND.windowLoaded,
+        windowFrom: '2026-04-15',
+        windowTo: '2026-05-29',
+        rows: 7,
+      }),
+    ]);
+  });
+
+  it('keeps the earliest reach when an account loads a window above the one it already has', () => {
+    const lower = applyWindowLoaded({
+      state: running(),
+      window: window({ from: '2026-03-01', to: '2026-04-15' }),
+      outcome: outcome(),
+      lastError: null,
+      now: NOW,
+    });
+    const state = applyWindowLoaded({
+      state: lower,
+      window: lastWindow,
+      outcome: outcome({ createdByAccountId: { 'acc-1': 2 } }),
+      lastError: null,
+      now: NOW,
+    });
+
+    expect(state.accounts['acc-1']).toMatchObject({ loadedFrom: '2026-03-01', rowsLoaded: 2 });
+  });
+
+  it('names the accounts a window failed for and leaves the others loaded', () => {
+    const state = applyWindowFailed({
+      state: applyWindowStarted({ state: running(), accountIds: ACCOUNTS }),
+      window: lastWindow,
+      outcome: outcome({ accountIds: ACCOUNTS, failedAccountIds: ['acc-2'], createdByAccountId: { 'acc-1': 3 } }),
+      message: '1 account failed',
+      now: NOW,
+    });
+
+    expect(state.accounts['acc-1']).toMatchObject({ state: BANK_HISTORY_ACCOUNT_STATE.loaded, rowsLoaded: 3 });
+    expect(state.accounts['acc-2']).toMatchObject({
+      state: BANK_HISTORY_ACCOUNT_STATE.failed,
+      lastError: '1 account failed',
+    });
+    expect(state.events.at(-1)).toMatchObject({
+      kind: BANK_HISTORY_EVENT_KIND.windowFailed,
+      failedAccountIds: ['acc-2'],
+    });
+  });
+
+  it('logs a window given up on as skipped, not as an ordinary failure', () => {
+    let state = applyWindowStarted({ state: running(), accountIds: ACCOUNTS });
+    for (let attempt = 0; attempt < MAX_WINDOW_ATTEMPTS; attempt++) {
+      state = applyWindowFailed({
+        state,
+        window: lastWindow,
+        outcome: outcome({ accountIds: ACCOUNTS, failedAccountIds: ACCOUNTS }),
+        message: 'down',
+        now: NOW,
+      });
+    }
+
+    expect(state.events.at(-1)).toMatchObject({ kind: BANK_HISTORY_EVENT_KIND.windowSkipped });
+    expect(state.events.filter((event) => event.kind === BANK_HISTORY_EVENT_KIND.windowFailed)).toHaveLength(
+      MAX_WINDOW_ATTEMPTS - 1,
+    );
+  });
+
+  it('puts accounts waiting on a request back to pending when the bridge refuses it', () => {
+    const state = applyCooldown({
+      state: applyWindowStarted({ state: running(), accountIds: ACCOUNTS }),
+      message: 'rate limited',
+      now: NOW,
+    });
+
+    expect(
+      Object.values(state.accounts).every((progress) => progress.state === BANK_HISTORY_ACCOUNT_STATE.pending),
+    ).toBe(true);
+    expect(state.events.at(-1)).toMatchObject({ kind: BANK_HISTORY_EVENT_KIND.cooldown, message: 'rate limited' });
+  });
+
+  it('puts accounts waiting on a request back to pending when a held lock refunds it', () => {
+    const spent = applySpend({ state: applyWindowStarted({ state: running(), accountIds: ACCOUNTS }), now: NOW });
+
+    const state = applyRefund({ state: spent, at: NOW.toISOString() });
+
+    expect(
+      Object.values(state.accounts).every((progress) => progress.state === BANK_HISTORY_ACCOUNT_STATE.pending),
+    ).toBe(true);
+  });
+
+  it('logs completion once, after the last window', () => {
+    const state = applyWindowLoaded({
+      state: running({ startDate: '2026-04-15' }),
+      window: lastWindow,
+      outcome: outcome(),
+      lastError: null,
+      now: NOW,
+    });
+
+    expect(state.events.map((event) => event.kind)).toEqual([
+      BANK_HISTORY_EVENT_KIND.windowLoaded,
+      BANK_HISTORY_EVENT_KIND.completed,
+    ]);
+  });
+
+  it('keeps only the newest events', () => {
+    let state = running();
+    for (let index = 0; index < MAX_EVENTS + 5; index++) {
+      state = applyCooldown({ state, message: `try ${index}`, now: NOW });
+    }
+
+    expect(state.events).toHaveLength(MAX_EVENTS);
+    expect(state.events.at(-1)?.message).toBe(`try ${MAX_EVENTS + 4}`);
+  });
+
+  it('reports accounts and events to the page, newest event first', () => {
+    const state = applyWindowLoaded({
+      state: applyCooldown({ state: running(), message: 'rate limited', now: NOW }),
+      window: lastWindow,
+      outcome: outcome({ createdByAccountId: { 'acc-1': 4 } }),
+      lastError: null,
+      now: NOW,
+    });
+
+    const reported = toHistoryStatus({ state, now: NOW, dailyCap: 8, windowDays: WINDOW_DAYS });
+
+    expect(reported.accounts).toEqual([
+      {
+        accountId: 'acc-1',
+        state: BANK_HISTORY_ACCOUNT_STATE.loaded,
+        loadedFrom: '2026-04-15',
+        rowsLoaded: 4,
+        lastError: null,
+      },
+    ]);
+    expect(reported.events.map((event) => event.kind)).toEqual([
+      BANK_HISTORY_EVENT_KIND.windowLoaded,
+      BANK_HISTORY_EVENT_KIND.cooldown,
+    ]);
   });
 });

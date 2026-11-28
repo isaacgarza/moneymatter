@@ -1,4 +1,10 @@
-import { BANK_HISTORY_STATE, BANK_PROVIDER_TYPE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  BANK_HISTORY_ACCOUNT_STATE,
+  BANK_HISTORY_EVENT_KIND,
+  BANK_HISTORY_STATE,
+  BANK_PROVIDER_TYPE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { afterEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
@@ -114,6 +120,17 @@ describe('Bank history backfill', () => {
       const starts = requestStartDates({ requests: recorder.requests });
       expect(starts).toHaveLength(3);
       expect(starts).toEqual(starts.toSorted((a, b) => b - a));
+
+      const finished = await getHistory({ connectionId });
+      expect(finished?.accounts).toMatchObject([
+        { accountId, state: BANK_HISTORY_ACCOUNT_STATE.loaded, rowsLoaded: 3, lastError: null },
+      ]);
+      expect(finished?.events.map((event) => event.kind)).toEqual([
+        BANK_HISTORY_EVENT_KIND.completed,
+        BANK_HISTORY_EVENT_KIND.windowLoaded,
+        BANK_HISTORY_EVENT_KIND.windowLoaded,
+        BANK_HISTORY_EVENT_KIND.windowLoaded,
+      ]);
     });
 
     it('stores each transaction once and does nothing further after completion', async () => {

@@ -20,8 +20,10 @@ import {
   applyTopDate,
   applyWindowFailed,
   applyWindowLoaded,
+  applyWindowStarted,
   type HistoryBackfillState,
   nextTarget,
+  type WindowOutcome,
 } from './state';
 import { updateHistoryState } from './state-store';
 
@@ -89,25 +91,29 @@ const stepFor = async ({ connectionId, now }: { connectionId: string; now: Date 
   if (requestsLeft({ requestsAt: state!.requestsAt, now, cap: getHistoryDailyRequestCap() }) === 0) return 'budget';
 
   const target: HistoryWindow = window;
+  const [firstAccountId, ...otherAccountIds] = accounts.map((account) => account.id);
+  if (!firstAccountId) return 'skipped';
+  const accountIds: [string, ...string[]] = [firstAccountId, ...otherAccountIds];
+
   // Counted before the request, so a crash mid-request cannot undercount what the bridge saw.
   await updateHistoryState({
     connectionId,
-    update: (current) => (current ? applySpend({ state: current, now }) : current),
+    update: (current) =>
+      current ? applyWindowStarted({ state: applySpend({ state: current, now }), accountIds }) : current,
   });
 
-  const [firstAccountId, ...otherAccountIds] = accounts.map((account) => account.id);
-  if (!firstAccountId) return 'skipped';
   try {
-    const { failedAccountIds } = await withAccountSyncLock({
-      accountIds: [firstAccountId, ...otherAccountIds],
+    const { failedAccountIds, createdByAccountId } = await withAccountSyncLock({
+      accountIds,
       fn: () =>
         syncConnectionAccounts({
           connectionId,
           userId: connection.userId,
-          systemAccountIds: [firstAccountId, ...otherAccountIds],
+          systemAccountIds: accountIds,
           window: target,
         }),
     });
+    const outcome: WindowOutcome = { accountIds, failedAccountIds, createdByAccountId };
     if (failedAccountIds.length > 0) {
       // The rows that did persist stay, and replaying the window is safe, so it counts as a failed try:
       // the cursor must not move past data an account did not store.
@@ -117,7 +123,8 @@ const stepFor = async ({ connectionId, now }: { connectionId: string; now: Date 
       });
       await updateHistoryState({
         connectionId,
-        update: (current) => (current ? applyWindowFailed({ state: current, window: target, message, now }) : current),
+        update: (current) =>
+          current ? applyWindowFailed({ state: current, window: target, outcome, message, now }) : current,
       });
       return 'failed';
     }
@@ -125,7 +132,7 @@ const stepFor = async ({ connectionId, now }: { connectionId: string; now: Date 
     const after = await updateHistoryState({
       connectionId,
       update: (current) =>
-        current ? applyWindowLoaded({ state: current, window: target, lastError: null, now }) : current,
+        current ? applyWindowLoaded({ state: current, window: target, outcome, lastError: null, now }) : current,
     });
     return after?.completedAt ? 'complete' : 'loaded';
   } catch (error) {
@@ -148,9 +155,12 @@ const stepFor = async ({ connectionId, now }: { connectionId: string; now: Date 
       return 'cooldown';
     }
 
+    // The request itself failed, so no account stored anything.
+    const outcome: WindowOutcome = { accountIds, failedAccountIds: accountIds, createdByAccountId: {} };
     await updateHistoryState({
       connectionId,
-      update: (current) => (current ? applyWindowFailed({ state: current, window: target, message, now }) : current),
+      update: (current) =>
+        current ? applyWindowFailed({ state: current, window: target, outcome, message, now }) : current,
     });
     logger.info('[History backfill] Window failed, will retry', { connectionId, reason: message });
     return 'failed';
