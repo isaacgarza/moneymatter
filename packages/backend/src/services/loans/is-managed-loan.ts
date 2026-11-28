@@ -22,6 +22,19 @@ export const isManagedLoan = async ({
 };
 
 /**
+ * Ids of the user's loans whose balance a bank connection reports. The loan
+ * partitions of the history reports use it to leave these out of the opening
+ * back-fill, which is only meaningful for a loan the engine anchors.
+ */
+export const getProviderOwnedLoanIds = async ({ userId }: { userId: number }): Promise<Set<string>> => {
+  const rows = await LoanDetails.findAll({
+    where: { userId, balanceSource: LOAN_BALANCE_SOURCE.provider },
+    attributes: ['accountId'],
+  });
+  return new Set(rows.map((row) => row.accountId));
+};
+
+/**
  * Whether a dedicated flow derives this account's balance: a vehicle always,
  * a loan only while the loan engine owns it. The checks that protect a derived
  * balance (ref restamp, plans) ask this, so a loan a bank reports is treated as

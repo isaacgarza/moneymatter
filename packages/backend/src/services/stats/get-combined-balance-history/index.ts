@@ -12,6 +12,7 @@ import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
+import { getProviderOwnedLoanIds } from '@services/loans/is-managed-loan';
 import { buildUsdRateLookup } from '@services/stats/build-usd-rate-lookup';
 import { calculateVehiclesBalanceHistory } from '@services/stats/calculate-vehicles-balance-history';
 import { calculateVentureBalanceHistory } from '@services/stats/calculate-venture-balance-history';
@@ -401,8 +402,12 @@ export const getCombinedBalanceHistory = async ({
             where: { userId, accountCategory: ACCOUNT_CATEGORIES.loan, excludeFromStats: false },
             attributes: ['id', 'refInitialBalance'],
           });
+          // A loan a bank reports has no anchor, so it keeps its own earliest balance row.
+          const providerLoanIds = await getProviderOwnedLoanIds({ userId });
           const openingMinorByAccount = new Map(
-            loanAccounts.map((a) => [a.id, a.refInitialBalance.toMinorUnits({ decimals })]),
+            loanAccounts
+              .filter((a) => !providerLoanIds.has(a.id))
+              .map((a) => [a.id, a.refInitialBalance.toMinorUnits({ decimals })]),
           );
 
           return getAggregatedBalanceHistory({

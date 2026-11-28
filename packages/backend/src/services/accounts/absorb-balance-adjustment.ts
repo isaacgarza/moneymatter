@@ -53,7 +53,7 @@ export const absorbBalanceAdjustment = withTransaction(
     if (!account) {
       throw new ValidationError({ message: `Account with ID ${accountId} not found` });
     }
-    assertNotDerivedBalanceAccount({ account, actionPhrase: 'take a balance adjustment' });
+    await assertNotDerivedBalanceAccount({ account, actionPhrase: 'take a balance adjustment' });
 
     const isSystem = account.type === ACCOUNT_TYPES.system;
     const newCurrentBalance = account.currentBalance.add(amountDelta);

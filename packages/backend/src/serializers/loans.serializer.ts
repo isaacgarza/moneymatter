@@ -46,6 +46,7 @@ function serializeLoanDetails(loanDetails: LoanDetails): LoanDetailsApiResponse 
   return {
     id: loanDetails.id,
     loanType: loanDetails.loanType,
+    balanceSource: loanDetails.balanceSource,
     originalPrincipal: moneyToApiDecimal(loanDetails.originalPrincipal),
     refOriginalPrincipal: moneyToApiDecimal(loanDetails.refOriginalPrincipal),
     interestRate: loanDetails.interestRate,

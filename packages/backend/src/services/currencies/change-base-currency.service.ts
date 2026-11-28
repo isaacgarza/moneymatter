@@ -5,7 +5,6 @@ import {
   type BaseCurrencyChangeStep,
   FIRE_AMOUNT_KEYS,
   type FireSettings,
-  isDedicatedFlowAccountCategory,
   type RecalculateResult,
   RESOURCE_TYPES,
 } from '@bt/shared/types';
@@ -37,6 +36,7 @@ import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.mode
 import { isRevaluedAccount, revalueBalanceHistory } from '@services/balances/revalue-balance-history.service';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { buildDailyPairRateResolver, toDayKey } from '@services/exchange-rates/build-daily-pair-rate-resolver';
+import { hasDerivedBalance } from '@services/loans/is-managed-loan';
 import { clearRefAmountCache } from '@services/ref-amount-cache';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import { Op, QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
@@ -529,7 +529,8 @@ async function recalculateAccounts(params: {
     // provider-owned openings (bank), loan anchors, and vehicles keep the
     // today-rate stamp their own flows use.
     const isBoundaryStamped =
-      account.type === ACCOUNT_TYPES.system && !isDedicatedFlowAccountCategory(account.accountCategory);
+      account.type === ACCOUNT_TYPES.system &&
+      !(await hasDerivedBalance({ accountId: account.id, accountCategory: account.accountCategory }));
     const initialBalanceDate = isBoundaryStamped ? (boundaryByAccountId.get(account.id) ?? today) : today;
 
     const newRefInitialBalance = await localCalculateRefAmount({

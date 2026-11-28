@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, DEDICATED_FLOW_ACCOUNT_CATEGORIES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, DEDICATED_FLOW_ACCOUNT_CATEGORIES, LOAN_BALANCE_SOURCE } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import { connection } from '@models/connection';
@@ -30,13 +30,20 @@ const loadCandidateAccounts = async (): Promise<Candidate[]> =>
             a."seamBalance" IS NOT NULL AS "hasSeam"
        FROM "Accounts" a
        JOIN "UsersCurrencies" uc ON uc."userId" = a."userId" AND uc."isDefaultCurrency" = true
-      WHERE a."accountCategory" NOT IN (:dedicatedFlowCategories)
+      WHERE (
+              a."accountCategory" NOT IN (:dedicatedFlowCategories)
+              OR EXISTS (
+                SELECT 1 FROM "LoanDetails" ld
+                 WHERE ld."accountId" = a."id" AND ld."balanceSource" = :providerSource
+              )
+            )
         AND (a."currencyCode" <> uc."currencyCode" OR (a."seamBalance" IS NOT NULL AND a."type" <> :system))
       ORDER BY a."id"`,
     {
       type: QueryTypes.SELECT,
       replacements: {
         dedicatedFlowCategories: [...DEDICATED_FLOW_ACCOUNT_CATEGORIES],
+        providerSource: LOAN_BALANCE_SOURCE.provider,
         system: ACCOUNT_TYPES.system,
       },
     },

@@ -166,6 +166,8 @@ export type LoanProjection = PaidOffLoanProjection | StalledLoanProjection | Amo
 export interface LoanDetailsApiResponse {
   id: RecordId;
   loanType: LOAN_TYPE;
+  /** `provider`: the bank reports the balance, so payments and balance corrections are not available. */
+  balanceSource: LOAN_BALANCE_SOURCE;
   originalPrincipal: number;
   refOriginalPrincipal: number;
   interestRate: number;
